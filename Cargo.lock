@@ -726,6 +726,7 @@ dependencies = [
  "hedge_rs",
  "log",
  "rustls",
+ "scopeguard",
 ]
 
 [[package]]

@@ -13,48 +13,65 @@ use std::{
         mpsc::{Receiver, Sender, channel},
     },
     thread,
+    time::Instant,
 };
 
-struct Duck {
-    id: i32,
-    name: String,
+#[macro_use(defer)]
+extern crate scopeguard;
+
+#[derive(Debug)]
+struct Person {
+    uuid: String,
 }
 
 fn main() -> Result<()> {
     env_logger::init();
 
-    // Simple DuckDB example:
-    let conn = Connection::open_in_memory()?;
-    conn.execute(
-        "CREATE TABLE ducks (id INTEGER PRIMARY KEY, name TEXT)",
-        [], // empty list of parameters
-    )?;
+    {
+        let conn = Connection::open_in_memory()?;
 
-    conn.execute_batch(
-        r#"
-        INSERT INTO ducks (id, name) VALUES (1, 'Donald Duck');
-        INSERT INTO ducks (id, name) VALUES (2, 'Scrooge McDuck');
-        "#,
-    )?;
+        {
+            let start = Instant::now();
 
-    conn.execute(
-        "INSERT INTO ducks (id, name) VALUES (?, ?)",
-        params![3, "Darkwing Duck"],
-    )?;
+            defer! {
+                info!("1-took {:?}", start.elapsed());
+            }
 
-    let ducks = conn
-        .prepare("FROM ducks")?
-        .query_map([], |row| {
-            Ok(Duck {
-                id: row.get(0)?,
-                name: row.get(1)?,
-            })
-        })?
-        .collect::<duckdb::Result<Vec<_>>>()?;
+            // Simple DuckDB example:
+            let mut stmt = conn.prepare("select uuid from read_csv('/home/f14t/999*.csv', header = true)")?;
+            let person_iter = stmt.query_map([], |row| Ok(Person { uuid: row.get(0)? }))?;
 
-    for duck in ducks {
-        info!("{}) {}", duck.id, duck.name);
+            let mut count: u64 = 0;
+            for person in person_iter {
+                _ = person;
+                count += 1;
+            }
+
+            info!("{}", count);
+        }
+
+        {
+            let start = Instant::now();
+
+            defer! {
+                info!("2-took {:?}", start.elapsed());
+            }
+
+            // Simple DuckDB example:
+            let mut stmt = conn.prepare("select uuid from read_csv('/home/f14t/999*.csv', header = true)")?;
+            let person_iter = stmt.query_map([], |row| Ok(Person { uuid: row.get(0)? }))?;
+
+            let mut count: u64 = 0;
+            for person in person_iter {
+                _ = person;
+                count += 1;
+            }
+
+            info!("{}", count);
+        }
     }
+
+    // ---
 
     // hedge example:
     let args: Vec<String> = env::args().collect();

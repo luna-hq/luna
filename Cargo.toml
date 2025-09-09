@@ -1,0 +1,23 @@
+[package]
+name = "fmdb"
+version = "0.1.0"
+edition = "2024"
+authors = ["flowerinthenight <root@flowerinthenight.com>"]
+description = "A cluster membership library built on spindle-rs."
+license = "Apache-2.0"
+repository = "https://github.com/flowerinthenight/fmdb"
+
+[dependencies]
+hedge_rs = "0.2.4"
+anyhow = "1.0.99"
+ctrlc = "3.5.0"
+env_logger = "0.11.8"
+log = "0.4.28"
+# We don't depend on rustls, but it's panicking without this.
+# https://github.com/rustls/rustls/issues/1938
+rustls = { version = "0.23.31", default-features = false, features = [
+    "ring",
+    "logging",
+    "std",
+    "tls12",
+] }

@@ -1,21 +1,62 @@
 use anyhow::Result;
 use ctrlc;
+use duckdb::{Connection, params};
 use hedge_rs::*;
 use log::*;
 use std::{
     env,
     fmt::Write as _,
-    io::{prelude::*, BufReader},
+    io::{BufReader, prelude::*},
     net::TcpListener,
     sync::{
-        mpsc::{channel, Receiver, Sender},
         Arc, Mutex,
+        mpsc::{Receiver, Sender, channel},
     },
     thread,
 };
 
+struct Duck {
+    id: i32,
+    name: String,
+}
+
 fn main() -> Result<()> {
     env_logger::init();
+
+    // Simple DuckDB example:
+    let conn = Connection::open_in_memory()?;
+    conn.execute(
+        "CREATE TABLE ducks (id INTEGER PRIMARY KEY, name TEXT)",
+        [], // empty list of parameters
+    )?;
+
+    conn.execute_batch(
+        r#"
+        INSERT INTO ducks (id, name) VALUES (1, 'Donald Duck');
+        INSERT INTO ducks (id, name) VALUES (2, 'Scrooge McDuck');
+        "#,
+    )?;
+
+    conn.execute(
+        "INSERT INTO ducks (id, name) VALUES (?, ?)",
+        params![3, "Darkwing Duck"],
+    )?;
+
+    let ducks = conn
+        .prepare("FROM ducks")?
+        .query_map([], |row| {
+            Ok(Duck {
+                id: row.get(0)?,
+                name: row.get(1)?,
+            })
+        })?
+        .collect::<duckdb::Result<Vec<_>>>()?;
+
+    for duck in ducks {
+        info!("{}) {}", duck.id, duck.name);
+    }
+
+    // hedge example:
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 5 {
@@ -59,12 +100,7 @@ fn main() -> Result<()> {
 
                         // Send our reply back using 'tx'.
                         let mut reply = String::new();
-                        write!(
-                            &mut reply,
-                            "echo '{msg_s}' from leader:{}",
-                            id_handler.to_string()
-                        )
-                        .unwrap();
+                        write!(&mut reply, "echo '{msg_s}' from leader:{}", id_handler.to_string()).unwrap();
                         tx.send(reply.as_bytes().to_vec()).unwrap();
                     }
                     // This is our 'broadcast' handler. When a node broadcasts a message,
@@ -75,8 +111,7 @@ fn main() -> Result<()> {
 
                         // Send our reply back using 'tx'.
                         let mut reply = String::new();
-                        write!(&mut reply, "echo '{msg_s}' from {}", id_handler.to_string())
-                            .unwrap();
+                        write!(&mut reply, "echo '{msg_s}' from {}", id_handler.to_string()).unwrap();
                         tx.send(reply.as_bytes().to_vec()).unwrap();
                     }
                     Comms::OnLeaderChange(state) => {
@@ -122,8 +157,7 @@ fn main() -> Result<()> {
                     }
 
                     if msg.starts_with("broadcast") {
-                        let (tx_reply, rx_reply): (Sender<Broadcast>, Receiver<Broadcast>) =
-                            channel();
+                        let (tx_reply, rx_reply): (Sender<Broadcast>, Receiver<Broadcast>) = channel();
                         let send = msg[..msg.len() - 1].to_string();
                         op_tcp
                             .lock()

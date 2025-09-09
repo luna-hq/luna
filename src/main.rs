@@ -32,10 +32,7 @@ fn main() -> Result<()> {
 
         {
             let start = Instant::now();
-
-            defer! {
-                info!("1-took {:?}", start.elapsed());
-            }
+            defer!(info!("1-took {:?}", start.elapsed()));
 
             // Simple DuckDB example:
             let mut stmt = conn.prepare("select uuid from read_csv('/home/f14t/999*.csv', header = true)")?;
@@ -52,10 +49,7 @@ fn main() -> Result<()> {
 
         {
             let start = Instant::now();
-
-            defer! {
-                info!("2-took {:?}", start.elapsed());
-            }
+            defer!(info!("2-took {:?}", start.elapsed()));
 
             // Simple DuckDB example:
             let mut stmt = conn.prepare("select uuid from read_csv('/home/f14t/999*.csv', header = true)")?;

@@ -52,11 +52,11 @@ struct Args {
     db_hedge: String,
 
     /// Spanner lock table (for hedge-rs)
-    #[arg(long, long, default_value = "fmdb")]
+    #[arg(long, long, default_value = "luna")]
     table: String,
 
     /// Lock name (for hedge-rs)
-    #[arg(short, long, default_value = "fmdb")]
+    #[arg(short, long, default_value = "luna")]
     name: String,
 
     /// Host:port for the API (format should be host:port)

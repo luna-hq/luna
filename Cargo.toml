@@ -1,11 +1,11 @@
 [package]
-name = "fmdb"
+name = "luna"
 version = "0.1.0"
 edition = "2024"
 authors = ["flowerinthenight <root@flowerinthenight.com>"]
 description = "Nothing to see here."
 license = "Apache-2.0"
-repository = "https://github.com/flowerinthenight/fmdb"
+repository = "https://github.com/flowerinthenight/luna"
 
 [dependencies]
 clap = { version = "4.5.47", features = ["derive"] }

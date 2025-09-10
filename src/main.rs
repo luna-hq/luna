@@ -235,21 +235,6 @@ fn main() -> Result<()> {
 
             info!("total={}, len={}", count, rbs.len());
         }
-
-        {
-            let start = Instant::now();
-            defer!(info!("2-took {:?}", start.elapsed()));
-
-            let mut stmt = conn.prepare("select uuid from tmpcur")?;
-            let rbs: Vec<RecordBatch> = stmt.query_arrow([])?.collect();
-
-            let mut count: u64 = 0;
-            for rb in rbs.iter() {
-                count += rb.num_rows() as u64;
-            }
-
-            info!("total={}", count);
-        }
     }
 
     // ---

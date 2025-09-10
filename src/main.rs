@@ -22,6 +22,10 @@ use std::{
     thread,
     time::Instant,
 };
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::TcpListener as TokioTcpListener,
+};
 
 #[macro_use(defer)]
 extern crate scopeguard;
@@ -47,7 +51,7 @@ struct Args {
     #[arg(long, long, default_value = "--db")]
     db_hedge: String,
 
-    /// Spanner table (for hedge-rs)
+    /// Spanner lock table (for hedge-rs)
     #[arg(long, long, default_value = "fmdb")]
     table: String,
 
@@ -55,7 +59,7 @@ struct Args {
     #[arg(short, long, default_value = "fmdb")]
     name: String,
 
-    /// Host:port for the test API (format should be host:port)
+    /// Host:port for the API (format should be host:port)
     #[arg(long, long, default_value = "0.0.0.0:9090")]
     api: String,
 }
@@ -74,8 +78,12 @@ fn main() -> Result<()> {
         &args.id, &args.db, &args.table, &args.name, &args.prefix,
     );
 
-    {
+    'onetime: loop {
         let conn = Connection::open_in_memory()?;
+
+        if true {
+            break 'onetime;
+        }
 
         {
             let start = Instant::now();
@@ -289,6 +297,8 @@ fn main() -> Result<()> {
 
             info!("total={}, len={}", count, rbs.len());
         }
+
+        break 'onetime;
     }
 
     // ---
@@ -354,6 +364,32 @@ fn main() -> Result<()> {
                 }
             }
         }
+    });
+
+    let runtime = Arc::new(tokio::runtime::Builder::new_multi_thread().enable_all().build()?);
+
+    thread::spawn(move || {
+        runtime.block_on(async {
+            let listen = TokioTcpListener::bind("0.0.0.0:9091").await.unwrap();
+            info!("listening from 0.0.0.0:9091");
+
+            loop {
+                let (mut socket, addr) = listen.accept().await.unwrap();
+                info!("accepted connection from: {}", addr);
+
+                runtime.spawn(async move {
+                    let mut buf = vec![0; 1024];
+                    let n = socket.read(&mut buf).await.unwrap();
+                    if n == 0 {
+                        info!("closed by {} before any data sent", addr);
+                        return;
+                    }
+
+                    socket.write_all(&buf[..n]).await.unwrap();
+                    info!("echoed {} bytes back to {}", n, addr);
+                });
+            }
+        });
     });
 
     // Starts a new thread for our test TCP server. Messages that start with 'q' will cause the

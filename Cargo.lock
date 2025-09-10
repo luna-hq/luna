@@ -768,6 +768,7 @@ dependencies = [
  "log",
  "rustls",
  "scopeguard",
+ "tokio",
 ]
 
 [[package]]

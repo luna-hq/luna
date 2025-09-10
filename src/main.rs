@@ -233,7 +233,7 @@ fn main() -> Result<()> {
                 count += rb.num_rows() as u64;
             }
 
-            info!("total={}", count);
+            info!("total={}, len={}", count, rbs.len());
         }
 
         {

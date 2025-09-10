@@ -1,6 +1,7 @@
 mod utils;
 
 use anyhow::Result;
+use clap::Parser;
 use ctrlc;
 use duckdb::{
     Connection,
@@ -25,8 +26,48 @@ use std::{
 #[macro_use(defer)]
 extern crate scopeguard;
 
+/// Simple PubSub system using Cloud Spanner as backing storage.
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+#[clap(verbatim_doc_comment)]
+struct Args {
+    /// Node ID (format should be host:port)
+    #[arg(long, long, default_value = "0.0.0.0:8080")]
+    id: String,
+
+    /// Host:port for the test API (format should be host:port)
+    #[arg(long, long, default_value = "0.0.0.0:9090")]
+    api: String,
+
+    /// Spanner database URL (format: 'projects/p/instances/i/databases/db')
+    #[arg(long)]
+    db: String,
+
+    /// Spanner database (for hedge-rs) (same with `--db` if not set)
+    #[arg(long, long, default_value = "--db")]
+    db_hedge: String,
+
+    /// Spanner table (for hedge-rs)
+    #[arg(long, long, default_value = "fmdb")]
+    table: String,
+
+    /// Lock name (for hedge-rs)
+    #[arg(short, long, default_value = "fmdb")]
+    name: String,
+}
+
 fn main() -> Result<()> {
     env_logger::init();
+    let args = Args::parse();
+    let mut db_hedge = String::new();
+    if args.db_hedge == "--db" {
+        db_hedge = args.db.clone();
+    }
+
+    info!(
+        "starting node:{}, api={}, db={}, db-hedge={}, table={}, lockname={}",
+        &args.id, &args.api, &args.db, &db_hedge, &args.table, &args.name
+    );
 
     {
         // Simple DuckDB example:
@@ -249,13 +290,6 @@ fn main() -> Result<()> {
     // ---
 
     // hedge example:
-    let args: Vec<String> = env::args().collect();
-
-    if args.len() < 5 {
-        error!("provide the db, table, id, and test host:port args");
-        return Ok(());
-    }
-
     let (tx, rx) = channel();
     ctrlc::set_handler(move || tx.send(()).unwrap())?;
 
@@ -265,10 +299,10 @@ fn main() -> Result<()> {
 
     let op = Arc::new(Mutex::new(
         OpBuilder::new()
-            .db(args[1].clone())
-            .table(args[2].clone())
-            .name("fmdb".to_string())
-            .id(args[3].to_string())
+            .id(args.id.clone())
+            .db(db_hedge)
+            .table(args.table)
+            .name(args.name)
             .lease_ms(3_000)
             .tx_comms(Some(tx_comms.clone()))
             .build(),
@@ -279,7 +313,7 @@ fn main() -> Result<()> {
     }
 
     // Start a new thread that will serve as handlers for both send() and broadcast() APIs.
-    let id_handler = args[3].clone();
+    let id_handler = args.id.clone();
     thread::spawn(move || {
         loop {
             match rx_comms.recv() {
@@ -323,7 +357,7 @@ fn main() -> Result<()> {
     // the current leader. Finally, messages that begin with 'broadcast' will broadcast that
     // message to all nodes in the group.
     let op_tcp = op.clone();
-    let host_port = args[4].clone();
+    let host_port = args.api.clone();
     thread::spawn(move || {
         let listen = TcpListener::bind(host_port.to_string()).unwrap();
         for stream in listen.incoming() {

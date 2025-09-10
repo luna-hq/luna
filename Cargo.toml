@@ -3,7 +3,7 @@ name = "fmdb"
 version = "0.1.0"
 edition = "2024"
 authors = ["flowerinthenight <root@flowerinthenight.com>"]
-description = "A cluster membership library built on spindle-rs."
+description = "Nothing to see here."
 license = "Apache-2.0"
 repository = "https://github.com/flowerinthenight/fmdb"
 

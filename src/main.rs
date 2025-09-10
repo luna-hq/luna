@@ -2,7 +2,11 @@ mod utils;
 
 use anyhow::Result;
 use ctrlc;
-use duckdb::{Connection, params};
+use duckdb::{
+    Connection, Result as DuckResult,
+    arrow::{record_batch::RecordBatch, util::pretty::print_batches},
+    params,
+};
 use hedge_rs::*;
 use log::*;
 use std::{
@@ -17,20 +21,14 @@ use std::{
     thread,
     time::Instant,
 };
-use utils::column_names;
+use utils::cur_columns;
 
 #[macro_use(defer)]
 extern crate scopeguard;
 
-#[derive(Debug)]
-struct Person {
-    uuid: String,
-}
-
 fn main() -> Result<()> {
     env_logger::init();
-    utils::sample_fn();
-    column_names::sample_fn();
+    cur_columns::pub_fn();
 
     {
         // Simple DuckDB example:
@@ -43,8 +41,8 @@ fn main() -> Result<()> {
             let mut q = String::new();
             write!(&mut q, "create table tmpcur as from ").unwrap();
             // write!(&mut q, "read_csv('/home/f14t/069496712340_2025-08*.csv', ").unwrap();
-            write!(&mut q, "read_csv('/home/f14t/931817257079*.csv', ").unwrap();
-            // write!(&mut q, "read_csv('/home/f14t/999148548534*.csv', ").unwrap();
+            // write!(&mut q, "read_csv('/home/f14t/931817257079*.csv', ").unwrap();
+            write!(&mut q, "read_csv('/home/f14t/999148548534*.csv', ").unwrap();
             write!(&mut q, "header = true, ").unwrap();
             write!(&mut q, "union_by_name = true, ").unwrap();
             write!(&mut q, "files_to_sniff = -1, ").unwrap();
@@ -213,6 +211,14 @@ fn main() -> Result<()> {
             write!(&mut q, "}})").unwrap();
 
             conn.execute(q.as_str(), params![])?;
+
+            let mut stmt = conn.prepare("DESCRIBE tmpcur")?;
+            let rbs: Vec<RecordBatch> = stmt.query_arrow([])?.collect();
+            if rbs.is_empty() || rbs[0].num_rows() == 0 {
+                error!("No data found.");
+            } else {
+                print_batches(&rbs).unwrap();
+            }
         }
 
         {
@@ -220,15 +226,14 @@ fn main() -> Result<()> {
             defer!(info!("1-took {:?}", start.elapsed()));
 
             let mut stmt = conn.prepare("select uuid from tmpcur")?;
-            let person_iter = stmt.query_map([], |row| Ok(Person { uuid: row.get(0)? }))?;
+            let rbs: Vec<RecordBatch> = stmt.query_arrow([])?.collect();
 
             let mut count: u64 = 0;
-            for person in person_iter {
-                _ = person;
-                count += 1;
+            for rb in rbs.iter() {
+                count += rb.num_rows() as u64;
             }
 
-            info!("{}", count);
+            info!("total={}", count);
         }
 
         {
@@ -236,15 +241,14 @@ fn main() -> Result<()> {
             defer!(info!("2-took {:?}", start.elapsed()));
 
             let mut stmt = conn.prepare("select uuid from tmpcur")?;
-            let person_iter = stmt.query_map([], |row| Ok(Person { uuid: row.get(0)? }))?;
+            let rbs: Vec<RecordBatch> = stmt.query_arrow([])?.collect();
 
             let mut count: u64 = 0;
-            for person in person_iter {
-                _ = person;
-                count += 1;
+            for rb in rbs.iter() {
+                count += rb.num_rows() as u64;
             }
 
-            info!("{}", count);
+            info!("total={}", count);
         }
     }
 

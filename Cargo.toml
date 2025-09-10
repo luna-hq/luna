@@ -8,6 +8,7 @@ license = "Apache-2.0"
 repository = "https://github.com/flowerinthenight/fmdb"
 
 [dependencies]
+arrow = { version = "56.1.0", features = ["prettyprint", "ffi"] }
 hedge_rs = "0.2.4"
 anyhow = "1.0.99"
 ctrlc = "3.5.0"

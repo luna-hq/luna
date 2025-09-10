@@ -1,8 +1,8 @@
 use log::*;
 use std::fmt::Write as _;
 
-pub fn sample_fn() {
-    info!("column_names::sample_fn called");
+pub fn pub_fn() {
+    info!("cur_columns::pub_fn called");
 }
 
 #[allow(dead_code)]

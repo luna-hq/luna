@@ -1,1 +1,10 @@
-Nothing to see here.
+> [!CAUTION]
+> This software is specific to [Alphaus](https://alphaus.cloud/).
+
+```sh
+# Sample run:
+$ RUST_LOG=info ./target/debug/fmdb \
+  --db projects/mobingi-main/instances/alphaus-prod/databases/main \
+  --table testlease \
+  --prefix 000000000000_2025-08
+```

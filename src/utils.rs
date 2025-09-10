@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 pub mod column_names;
 
 use log::*;

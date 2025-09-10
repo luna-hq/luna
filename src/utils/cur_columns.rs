@@ -1,7 +1,12 @@
 use log::*;
 use std::fmt::Write as _;
 
-pub fn column_names() {
+pub fn sample_fn() {
+    info!("column_names::sample_fn called");
+}
+
+#[allow(dead_code)]
+pub fn cur_columns() {
     let mut q = String::new();
     write!(&mut q, "create table tmpcur as from ").unwrap();
     write!(&mut q, "read_csv('/home/f14t/931817257079*.csv', ").unwrap();

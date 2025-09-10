@@ -1,4 +1,4 @@
-mod internal;
+mod utils;
 
 use anyhow::Result;
 use ctrlc;
@@ -17,6 +17,7 @@ use std::{
     thread,
     time::Instant,
 };
+use utils::column_names;
 
 #[macro_use(defer)]
 extern crate scopeguard;
@@ -28,7 +29,8 @@ struct Person {
 
 fn main() -> Result<()> {
     env_logger::init();
-    internal::sample_fn();
+    utils::sample_fn();
+    column_names::sample_fn();
 
     {
         // Simple DuckDB example:

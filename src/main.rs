@@ -31,16 +31,16 @@ extern crate scopeguard;
 #[command(version, about, long_about = None)]
 #[clap(verbatim_doc_comment)]
 struct Args {
+    /// Prefix for CUR accounts to cache (format should be {acctnum}_yyyy-mm)
+    #[arg(long, long)]
+    prefix: String,
+
     /// Node ID (format should be host:port)
     #[arg(long, long, default_value = "0.0.0.0:8080")]
     id: String,
 
-    /// Host:port for the test API (format should be host:port)
-    #[arg(long, long, default_value = "0.0.0.0:9090")]
-    api: String,
-
-    /// Spanner database URL (format: 'projects/p/instances/i/databases/db')
-    #[arg(long)]
+    /// Spanner database URL
+    #[arg(long, long, default_value = "projects/p/instances/i/databases/db")]
     db: String,
 
     /// Spanner database (for hedge-rs) (same with `--db` if not set)
@@ -54,23 +54,27 @@ struct Args {
     /// Lock name (for hedge-rs)
     #[arg(short, long, default_value = "fmdb")]
     name: String,
+
+    /// Host:port for the test API (format should be host:port)
+    #[arg(long, long, default_value = "0.0.0.0:9090")]
+    api: String,
 }
 
 fn main() -> Result<()> {
     env_logger::init();
     let args = Args::parse();
+
     let mut db_hedge = String::new();
     if args.db_hedge == "--db" {
         db_hedge = args.db.clone();
     }
 
     info!(
-        "starting node:{}, api={}, db={}, db-hedge={}, table={}, lockname={}",
-        &args.id, &args.api, &args.db, &db_hedge, &args.table, &args.name
+        "start: node:{}, db={}, lock={}/{}, prefix={}",
+        &args.id, &args.db, &args.table, &args.name, &args.prefix,
     );
 
     {
-        // Simple DuckDB example:
         let conn = Connection::open_in_memory()?;
 
         {
@@ -97,7 +101,7 @@ fn main() -> Result<()> {
 
             q.clear();
             write!(&mut q, "create table tmpcur as from ").unwrap();
-            write!(&mut q, "read_csv('gs://awscur/992382443124_2025-08*.csv', ").unwrap();
+            write!(&mut q, "read_csv('gs://awscur/{}*.csv', ", &args.prefix).unwrap();
             write!(&mut q, "header = true, ").unwrap();
             write!(&mut q, "union_by_name = true, ").unwrap();
             write!(&mut q, "files_to_sniff = -1, ").unwrap();

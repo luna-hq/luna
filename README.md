@@ -3,7 +3,7 @@
 
 ```sh
 # Sample run:
-$ RUST_LOG=info ./target/debug/fmdb \
+$ RUST_LOG=info ./target/debug/luna \
   --db projects/mobingi-main/instances/alphaus-prod/databases/main \
   --table testlease \
   --prefix 000000000000_2025-08

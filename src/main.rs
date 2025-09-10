@@ -37,10 +37,26 @@ fn main() -> Result<()> {
             defer!(info!("0-took {:?}", start.elapsed()));
 
             let mut q = String::new();
+            write!(&mut q, "INSTALL httpfs;").unwrap();
+            conn.execute(q.as_str(), params![])?;
+
+            q.clear();
+            write!(&mut q, "LOAD httpfs;").unwrap();
+            conn.execute(q.as_str(), params![])?;
+
+            q.clear();
+            let key = env::var("LINKBATCHD_GCS_HMAC_KEY").unwrap();
+            let secret = env::var("LINKBATCHD_GCS_HMAC_SECRET").unwrap();
+            write!(&mut q, "CREATE SECRET (").unwrap();
+            write!(&mut q, "TYPE gcs,").unwrap();
+            write!(&mut q, "KEY_ID '{key}',").unwrap();
+            write!(&mut q, "SECRET '{secret}'").unwrap();
+            write!(&mut q, ");").unwrap();
+            conn.execute(q.as_str(), params![])?;
+
+            q.clear();
             write!(&mut q, "create table tmpcur as from ").unwrap();
-            // write!(&mut q, "read_csv('/home/f14t/069496712340_2025-08*.csv', ").unwrap();
-            // write!(&mut q, "read_csv('/home/f14t/931817257079*.csv', ").unwrap();
-            write!(&mut q, "read_csv('/home/f14t/999148548534*.csv', ").unwrap();
+            write!(&mut q, "read_csv('gs://awscur/992382443124_2025-08*.csv', ").unwrap();
             write!(&mut q, "header = true, ").unwrap();
             write!(&mut q, "union_by_name = true, ").unwrap();
             write!(&mut q, "files_to_sniff = -1, ").unwrap();
@@ -125,7 +141,6 @@ fn main() -> Result<()> {
             write!(&mut q, "'product/locationType':'VARCHAR',").unwrap();
             write!(&mut q, "'product/logsDestination':'VARCHAR',").unwrap();
             write!(&mut q, "'product/marketoption':'VARCHAR',").unwrap();
-            write!(&mut q, "'product/maxIopsBurstPerformance':'VARCHAR',").unwrap();
             write!(&mut q, "'product/maxIopsvolume':'VARCHAR',").unwrap();
             write!(&mut q, "'product/maxThroughputvolume':'VARCHAR',").unwrap();
             write!(&mut q, "'product/maxVolumeSize':'VARCHAR',").unwrap();
@@ -138,11 +153,9 @@ fn main() -> Result<()> {
             write!(&mut q, "'product/operation':'VARCHAR',").unwrap();
             write!(&mut q, "'product/physicalProcessor':'VARCHAR',").unwrap();
             write!(&mut q, "'product/preInstalledSw':'VARCHAR',").unwrap();
-            write!(&mut q, "'product/pricingplan':'VARCHAR',").unwrap();
             write!(&mut q, "'product/processorArchitecture':'VARCHAR',").unwrap();
             write!(&mut q, "'product/processorFeatures':'VARCHAR',").unwrap();
             write!(&mut q, "'product/productFamily':'VARCHAR',").unwrap();
-            write!(&mut q, "'product/provider':'VARCHAR',").unwrap();
             write!(&mut q, "'product/queueType':'VARCHAR',").unwrap();
             write!(&mut q, "'product/region':'VARCHAR',").unwrap();
             write!(&mut q, "'product/regionCode':'VARCHAR',").unwrap();
@@ -153,7 +166,6 @@ fn main() -> Result<()> {
             write!(&mut q, "'product/storage':'VARCHAR',").unwrap();
             write!(&mut q, "'product/storageClass':'VARCHAR',").unwrap();
             write!(&mut q, "'product/storageMedia':'VARCHAR',").unwrap();
-            write!(&mut q, "'product/subservice':'VARCHAR',").unwrap();
             write!(&mut q, "'product/tenancy':'VARCHAR',").unwrap();
             write!(&mut q, "'product/toLocation':'VARCHAR',").unwrap();
             write!(&mut q, "'product/toLocationType':'VARCHAR',").unwrap();
@@ -206,11 +218,10 @@ fn main() -> Result<()> {
             write!(&mut q, "'savingsPlan/RecurringCommitmentForBillingPeriod':'DOUBLE',").unwrap();
             write!(&mut q, "'tags':'VARCHAR',").unwrap();
             write!(&mut q, "'costcategories':'VARCHAR'").unwrap();
-            write!(&mut q, "}})").unwrap();
-
+            write!(&mut q, "}});").unwrap();
             conn.execute(q.as_str(), params![])?;
 
-            let mut stmt = conn.prepare("DESCRIBE tmpcur")?;
+            let mut stmt = conn.prepare("DESCRIBE tmpcur;")?;
             let rbs: Vec<RecordBatch> = stmt.query_arrow([])?.collect();
             if rbs.is_empty() || rbs[0].num_rows() == 0 {
                 error!("No data found.");
@@ -223,7 +234,7 @@ fn main() -> Result<()> {
             let start = Instant::now();
             defer!(info!("1-took {:?}", start.elapsed()));
 
-            let mut stmt = conn.prepare("select uuid from tmpcur")?;
+            let mut stmt = conn.prepare("select uuid from tmpcur;")?;
             let rbs: Vec<RecordBatch> = stmt.query_arrow([])?.collect();
 
             let mut count: u64 = 0;

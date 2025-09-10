@@ -3,7 +3,7 @@ mod utils;
 use anyhow::Result;
 use ctrlc;
 use duckdb::{
-    Connection, Result as DuckResult,
+    Connection,
     arrow::{record_batch::RecordBatch, util::pretty::print_batches},
     params,
 };
@@ -21,14 +21,12 @@ use std::{
     thread,
     time::Instant,
 };
-use utils::cur_columns;
 
 #[macro_use(defer)]
 extern crate scopeguard;
 
 fn main() -> Result<()> {
     env_logger::init();
-    cur_columns::pub_fn();
 
     {
         // Simple DuckDB example:

@@ -1,10 +1,6 @@
 use log::*;
 use std::fmt::Write as _;
 
-pub fn pub_fn() {
-    info!("cur_columns::pub_fn called");
-}
-
 #[allow(dead_code)]
 pub fn cur_columns() {
     let mut q = String::new();

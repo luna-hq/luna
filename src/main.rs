@@ -24,6 +24,7 @@ use std::{
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpListener,
+    runtime::Builder,
 };
 
 #[macro_use(defer)]
@@ -33,9 +34,9 @@ extern crate scopeguard;
 #[command(version, about, long_about = None)]
 #[clap(verbatim_doc_comment)]
 struct Args {
-    /// Prefix for files to preload (gs://bucket/prefix, s3://bucket/prefix, /local/prefix)
-    #[arg(long, long)]
-    prefix: String,
+    /// CSV files to preload (gs://bucket/prefix*.csv, s3://bucket/prefix*.csv, /local/prefix*.csv)
+    #[arg(long, long, default_value = "?")]
+    preload_csv: String,
 
     /// Node ID (format should be host:port)
     #[arg(long, long, default_value = "0.0.0.0:8080")]
@@ -43,19 +44,19 @@ struct Args {
 
     /// Spanner database (for hedge-rs) (fmt: projects/p/instances/i/databases/db)
     #[arg(long, long, default_value = "?")]
-    db_hedge: String,
+    hedge_db: String,
 
     /// Spanner lock table (for hedge-rs)
     #[arg(long, long, default_value = "luna")]
-    table: String,
+    hedge_table: String,
 
     /// Lock name (for hedge-rs)
     #[arg(short, long, default_value = "luna")]
-    name: String,
+    hedge_lockname: String,
 
     /// Host:port for the API (format should be host:port)
     #[arg(long, long, default_value = "0.0.0.0:9090")]
-    api: String,
+    api_host_port: String,
 }
 
 fn main() -> Result<()> {
@@ -63,8 +64,8 @@ fn main() -> Result<()> {
     let args = Args::parse();
 
     info!(
-        "start: prefix={}, api={}, node={}, lock={}/{}/{}, ",
-        &args.prefix, &args.api, &args.node_id, &args.db_hedge, &args.table, &args.name,
+        "start: api={}, node={}, lock={}/{}/{}",
+        &args.api_host_port, &args.node_id, &args.hedge_db, &args.hedge_table, &args.hedge_lockname,
     );
 
     'onetime: loop {
@@ -98,7 +99,7 @@ fn main() -> Result<()> {
 
             q.clear();
             write!(&mut q, "create table tmpcur as from ").unwrap();
-            write!(&mut q, "read_csv('gs://awscur/{}*.csv', ", &args.prefix).unwrap();
+            write!(&mut q, "read_csv('{}', ", &args.preload_csv).unwrap();
             write!(&mut q, "header = true, ").unwrap();
             write!(&mut q, "union_by_name = true, ").unwrap();
             write!(&mut q, "files_to_sniff = -1, ").unwrap();
@@ -294,7 +295,7 @@ fn main() -> Result<()> {
     ctrlc::set_handler(move || tx.send(()).unwrap())?;
 
     let mut op = vec![];
-    if args.db_hedge != "?" {
+    if args.hedge_db != "?" {
         // We will use this channel for the 'send' and 'broadcast' features.
         // Use Sender as inputs, then we read replies through the Receiver.
         let (tx_comms, rx_comms): (Sender<Comms>, Receiver<Comms>) = channel();
@@ -302,9 +303,9 @@ fn main() -> Result<()> {
         op = vec![Arc::new(Mutex::new(
             OpBuilder::new()
                 .id(args.node_id.clone())
-                .db(args.db_hedge)
-                .table(args.table)
-                .name(args.name)
+                .db(args.hedge_db)
+                .table(args.hedge_table)
+                .name(args.hedge_lockname)
                 .lease_ms(3_000)
                 .tx_comms(Some(tx_comms.clone()))
                 .build(),
@@ -355,11 +356,11 @@ fn main() -> Result<()> {
         });
     }
 
-    let runtime = Arc::new(tokio::runtime::Builder::new_multi_thread().enable_all().build()?);
+    let rt = Arc::new(Builder::new_multi_thread().enable_all().build()?);
 
-    let api_host_port = args.api.clone();
+    let api_host_port = args.api_host_port.clone();
     thread::spawn(move || {
-        runtime.block_on(async {
+        rt.block_on(async {
             let listen = TcpListener::bind(&api_host_port).await.unwrap();
             info!("listening from {}", &api_host_port);
 
@@ -367,7 +368,7 @@ fn main() -> Result<()> {
                 let (mut socket, addr) = listen.accept().await.unwrap();
                 info!("accepted connection from: {}", addr);
 
-                runtime.spawn(async move {
+                rt.spawn(async move {
                     let mut buf = vec![0; 1024];
                     let n = socket.read(&mut buf).await.unwrap();
                     if n == 0 {

@@ -29,18 +29,17 @@ use tokio::{
 #[macro_use(defer)]
 extern crate scopeguard;
 
-/// Simple PubSub system using Cloud Spanner as backing storage.
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 #[clap(verbatim_doc_comment)]
 struct Args {
-    /// Prefix for CUR accounts to cache (format should be {acctnum}_yyyy-mm)
+    /// Prefix for files to preload (gs://bucket/prefix, s3://bucket/prefix, /local/prefix)
     #[arg(long, long)]
     prefix: String,
 
     /// Node ID (format should be host:port)
     #[arg(long, long, default_value = "0.0.0.0:8080")]
-    id: String,
+    node_id: String,
 
     /// Spanner database (for hedge-rs) (fmt: projects/p/instances/i/databases/db)
     #[arg(long, long, default_value = "-")]
@@ -65,7 +64,7 @@ fn main() -> Result<()> {
 
     info!(
         "start: node:{}, lock={}/{}, prefix={}",
-        &args.id, &args.table, &args.name, &args.prefix,
+        &args.node_id, &args.table, &args.name, &args.prefix,
     );
 
     'onetime: loop {
@@ -304,7 +303,7 @@ fn main() -> Result<()> {
     if args.db_hedge != "-" {
         op = vec![Arc::new(Mutex::new(
             OpBuilder::new()
-                .id(args.id.clone())
+                .id(args.node_id.clone())
                 .db(args.db_hedge)
                 .table(args.table)
                 .name(args.name)
@@ -318,7 +317,7 @@ fn main() -> Result<()> {
         }
 
         // Start a new thread that will serve as handlers for both send() and broadcast() APIs.
-        let id_handler = args.id.clone();
+        let id_handler = args.node_id.clone();
         thread::spawn(move || {
             loop {
                 match rx_comms.recv() {

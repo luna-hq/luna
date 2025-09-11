@@ -290,17 +290,15 @@ fn main() -> Result<()> {
         break 'onetime;
     }
 
-    // ---
-
     let (tx, rx) = channel();
     ctrlc::set_handler(move || tx.send(()).unwrap())?;
 
-    // We will use this channel for the 'send' and 'broadcast' features.
-    // Use Sender as inputs, then we read replies through the Receiver.
-    let (tx_comms, rx_comms): (Sender<Comms>, Receiver<Comms>) = channel();
-
     let mut op = vec![];
     if args.db_hedge != "?" {
+        // We will use this channel for the 'send' and 'broadcast' features.
+        // Use Sender as inputs, then we read replies through the Receiver.
+        let (tx_comms, rx_comms): (Sender<Comms>, Receiver<Comms>) = channel();
+
         op = vec![Arc::new(Mutex::new(
             OpBuilder::new()
                 .id(args.node_id.clone())
@@ -373,7 +371,6 @@ fn main() -> Result<()> {
                     let mut buf = vec![0; 1024];
                     let n = socket.read(&mut buf).await.unwrap();
                     if n == 0 {
-                        info!("closed by {} before any data sent", addr);
                         return;
                     }
 

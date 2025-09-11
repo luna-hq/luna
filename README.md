@@ -3,5 +3,5 @@
 
 ```sh
 # Sample run:
-$ RUST_LOG=info ./target/debug/luna --prefix 'gs://awscur/000000000000_2025-08*'
+$ RUST_LOG=info ./target/debug/luna --prefix 'gs://awscur/000000000000_2025-08*.csv'
 ```

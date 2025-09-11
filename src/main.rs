@@ -34,7 +34,7 @@ extern crate scopeguard;
 #[command(version, about, long_about = None)]
 #[clap(verbatim_doc_comment)]
 struct Args {
-    /// CSV files to preload (gs://bucket/prefix*.csv, s3://bucket/prefix*.csv, /local/prefix*.csv)
+    /// Preload CSV files (gs://bucket/prefix*.csv, s3://bucket/prefix*.csv, /local/prefix*.csv)
     #[arg(long, long, default_value = "?")]
     preload_csv: String,
 
@@ -42,15 +42,15 @@ struct Args {
     #[arg(long, long, default_value = "0.0.0.0:8080")]
     node_id: String,
 
-    /// Spanner database (for hedge-rs) (fmt: projects/p/instances/i/databases/db)
+    /// Optional, Spanner database (for hedge-rs) (fmt: projects/p/instances/i/databases/db)
     #[arg(long, long, default_value = "?")]
     hedge_db: String,
 
-    /// Spanner lock table (for hedge-rs)
+    /// Optional, Spanner lock table (for hedge-rs)
     #[arg(long, long, default_value = "luna")]
     hedge_table: String,
 
-    /// Lock name (for hedge-rs)
+    /// Optional, lock name (for hedge-rs)
     #[arg(long, long, default_value = "luna")]
     hedge_lockname: String,
 

@@ -51,7 +51,7 @@ struct Args {
     hedge_table: String,
 
     /// Lock name (for hedge-rs)
-    #[arg(short, long, default_value = "luna")]
+    #[arg(long, long, default_value = "luna")]
     hedge_lockname: String,
 
     /// Host:port for the API (format should be host:port)
@@ -69,11 +69,11 @@ fn main() -> Result<()> {
     );
 
     'onetime: loop {
-        let conn = Connection::open_in_memory()?;
-
-        if true {
+        if &args.preload_csv == "?" {
             break 'onetime;
         }
+
+        let conn = Connection::open_in_memory()?;
 
         {
             let start = Instant::now();
@@ -277,7 +277,7 @@ fn main() -> Result<()> {
             let start = Instant::now();
             defer!(info!("1-took {:?}", start.elapsed()));
 
-            let mut stmt = conn.prepare("select uuid from tmpcur;")?;
+            let mut stmt = conn.prepare("select uuid, date, payer from tmpcur;")?;
             let rbs: Vec<RecordBatch> = stmt.query_arrow([])?.collect();
 
             let mut count: u64 = 0;

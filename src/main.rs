@@ -42,7 +42,7 @@ struct Args {
     node_id: String,
 
     /// Spanner database (for hedge-rs) (fmt: projects/p/instances/i/databases/db)
-    #[arg(long, long, default_value = "-")]
+    #[arg(long, long, default_value = "?")]
     db_hedge: String,
 
     /// Spanner lock table (for hedge-rs)
@@ -63,8 +63,8 @@ fn main() -> Result<()> {
     let args = Args::parse();
 
     info!(
-        "start: node:{}, lock={}/{}, prefix={}",
-        &args.node_id, &args.table, &args.name, &args.prefix,
+        "start: prefix={}, api={}, node={}, lock={}/{}/{}, ",
+        &args.prefix, &args.api, &args.node_id, &args.db_hedge, &args.table, &args.name,
     );
 
     'onetime: loop {
@@ -300,7 +300,7 @@ fn main() -> Result<()> {
     let (tx_comms, rx_comms): (Sender<Comms>, Receiver<Comms>) = channel();
 
     let mut op = vec![];
-    if args.db_hedge != "-" {
+    if args.db_hedge != "?" {
         op = vec![Arc::new(Mutex::new(
             OpBuilder::new()
                 .id(args.node_id.clone())

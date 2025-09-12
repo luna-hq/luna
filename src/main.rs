@@ -1,16 +1,20 @@
 mod utils;
 
 use anyhow::Result;
+use arrow_array::{Float64Array, Int32Array, RecordBatch, StringArray};
+use arrow_ipc::writer::StreamWriter;
+use arrow_schema::{DataType, Field, Schema};
 use clap::Parser;
 use ctrlc;
 use duckdb::{
     Connection,
-    arrow::{record_batch::RecordBatch, util::pretty::print_batches},
+    arrow::{record_batch::RecordBatch as DuckRecordBatch, util::pretty::print_batches},
     params,
 };
 use hedge_rs::*;
 use log::*;
 use std::{
+    collections::HashMap,
     env,
     fmt::Write as _,
     io::{BufReader, prelude::*},
@@ -22,9 +26,9 @@ use std::{
     time::Instant,
 };
 use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::TcpListener,
-    runtime::Builder,
+    io::AsyncWriteExt,
+    net::{TcpListener, TcpStream},
+    runtime::{Builder, Handle},
 };
 
 #[macro_use(defer)]
@@ -57,6 +61,11 @@ struct Args {
     /// Host:port for the API (format should be host:port)
     #[arg(long, long, default_value = "0.0.0.0:9090")]
     api_host_port: String,
+}
+
+#[derive(Clone, Debug)]
+enum WorkerCtrl {
+    Dummy { s: Arc<Mutex<TcpStream>> },
 }
 
 fn main() -> Result<()> {
@@ -265,7 +274,7 @@ fn main() -> Result<()> {
             conn.execute(q.as_str(), params![])?;
 
             let mut stmt = conn.prepare("DESCRIBE tmpcur;")?;
-            let rbs: Vec<RecordBatch> = stmt.query_arrow([])?.collect();
+            let rbs: Vec<DuckRecordBatch> = stmt.query_arrow([])?.collect();
             if rbs.is_empty() || rbs[0].num_rows() == 0 {
                 error!("No data found.");
             } else {
@@ -278,7 +287,7 @@ fn main() -> Result<()> {
             defer!(info!("1-took {:?}", start.elapsed()));
 
             let mut stmt = conn.prepare("select uuid, date, payer from tmpcur;")?;
-            let rbs: Vec<RecordBatch> = stmt.query_arrow([])?.collect();
+            let rbs: Vec<DuckRecordBatch> = stmt.query_arrow([])?.collect();
 
             let mut count: u64 = 0;
             for rb in rbs.iter() {
@@ -291,15 +300,12 @@ fn main() -> Result<()> {
         break 'onetime;
     }
 
-    let (tx, rx) = channel();
-    ctrlc::set_handler(move || tx.send(()).unwrap())?;
+    let (tx_ctrlc, rx_ctrlc) = channel();
+    ctrlc::set_handler(move || tx_ctrlc.send(()).unwrap())?;
 
     let mut op = vec![];
     if args.hedge_db != "?" {
-        // We will use this channel for the 'send' and 'broadcast' features.
-        // Use Sender as inputs, then we read replies through the Receiver.
         let (tx_comms, rx_comms): (Sender<Comms>, Receiver<Comms>) = channel();
-
         op = vec![Arc::new(Mutex::new(
             OpBuilder::new()
                 .id(args.node_id.clone())
@@ -315,7 +321,7 @@ fn main() -> Result<()> {
             op[0].lock().unwrap().run()?;
         }
 
-        // Start a new thread that will serve as handlers for both send() and broadcast() APIs.
+        // Handler thread for both send() and broadcast() APIs.
         let id_handler = args.node_id.clone();
         thread::spawn(move || {
             loop {
@@ -358,6 +364,39 @@ fn main() -> Result<()> {
 
     let rt = Arc::new(Builder::new_multi_thread().enable_all().build()?);
 
+    let _cpus = num_cpus::get();
+    let (tx_work, rx_work) = async_channel::unbounded::<WorkerCtrl>();
+
+    let rt_clone = rt.clone();
+    thread::spawn(move || {
+        loop {
+            let (tx_in, mut rx_in) = tokio::sync::mpsc::unbounded_channel::<WorkerCtrl>();
+            rt_clone.block_on(async {
+                tx_in.send(rx_work.recv().await.unwrap()).unwrap();
+            });
+
+            match rx_in.blocking_recv().unwrap() {
+                WorkerCtrl::Dummy { s } => {
+                    info!("WorkerCtrl::Dummy received");
+
+                    let mut my_ipc_writer = MyIpcWriter {
+                        stream: s,
+                        handle: rt_clone.handle(),
+                    };
+
+                    let (schema, batches) = create_batches().unwrap();
+                    let mut writer = StreamWriter::try_new(&mut my_ipc_writer, &schema).unwrap();
+
+                    for b in batches.iter() {
+                        writer.write(&b).unwrap();
+                    }
+
+                    writer.finish().unwrap();
+                }
+            }
+        }
+    });
+
     let api_host_port = args.api_host_port.clone();
     thread::spawn(move || {
         rt.block_on(async {
@@ -365,28 +404,78 @@ fn main() -> Result<()> {
             info!("listening from {}", &api_host_port);
 
             loop {
-                let (mut socket, addr) = listen.accept().await.unwrap();
+                let (stream, addr) = listen.accept().await.unwrap();
                 info!("accepted connection from: {}", addr);
 
+                let tx_work_clone = tx_work.clone();
                 rt.spawn(async move {
-                    let mut buf = vec![0; 1024];
-                    let n = socket.read(&mut buf).await.unwrap();
-                    if n == 0 {
-                        return;
-                    }
-
-                    socket.write_all(&buf[..n]).await.unwrap();
-                    info!("echoed {} bytes back to {}", n, addr);
+                    tx_work_clone
+                        .send(WorkerCtrl::Dummy {
+                            s: Arc::new(Mutex::new(stream)),
+                        })
+                        .await
+                        .unwrap();
                 });
             }
         });
     });
 
-    rx.recv()?; // wait for Ctrl-C
+    rx_ctrlc.recv()?; // wait for Ctrl-C
 
     if op.len() > 0 {
         op[0].lock().unwrap().close();
     }
 
     Ok(())
+}
+
+struct MyIpcWriter<'a> {
+    stream: Arc<Mutex<TcpStream>>,
+    handle: &'a Handle,
+}
+
+impl<'a> std::io::Write for MyIpcWriter<'a> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.handle.block_on(async {
+            self.stream.lock().unwrap().write_all(buf).await?;
+            Ok(buf.len())
+        })
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.handle.block_on(async {
+            self.stream.lock().unwrap().flush().await?;
+            Ok(())
+        })
+    }
+}
+
+fn create_batches() -> Result<(Arc<Schema>, Vec<RecordBatch>)> {
+    // 1. Define the schema for our data.
+    let schema = Arc::new(Schema::new(vec![
+        Field::new("id", DataType::Int32, false),
+        Field::new("value", DataType::Float64, false),
+        Field::new("description", DataType::Utf8, false),
+    ]));
+
+    // 2. Create the first batch of data.
+    let batch1 = RecordBatch::try_new(
+        schema.clone(),
+        vec![
+            Arc::new(Int32Array::from(vec![1, 2, 3])),
+            Arc::new(Float64Array::from(vec![10.1, 20.2, 30.3])),
+            Arc::new(StringArray::from(vec!["foo", "bar", "baz"])),
+        ],
+    )?;
+
+    // 3. Create the second batch of data.
+    let batch2 = RecordBatch::try_new(
+        schema.clone(),
+        vec![
+            Arc::new(Int32Array::from(vec![4, 5])),
+            Arc::new(Float64Array::from(vec![40.4, 50.5])),
+            Arc::new(StringArray::from(vec!["qux", "quux"])),
+        ],
+    )?;
+
+    Ok((schema, vec![batch1, batch2]))
 }

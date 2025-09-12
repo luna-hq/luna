@@ -4,6 +4,7 @@ use anyhow::Result;
 use arrow_array::{Float64Array, Int32Array, RecordBatch, StringArray};
 use arrow_ipc::writer::StreamWriter;
 use arrow_schema::{DataType, Field, Schema};
+use async_channel::Receiver as AsyncReceiver;
 use clap::Parser;
 use ctrlc;
 use duckdb::{
@@ -364,38 +365,67 @@ fn main() -> Result<()> {
 
     let rt = Arc::new(Builder::new_multi_thread().enable_all().build()?);
 
-    let _cpus = num_cpus::get();
     let (tx_work, rx_work) = async_channel::unbounded::<WorkerCtrl>();
+    let rx_works: Arc<Mutex<HashMap<usize, AsyncReceiver<WorkerCtrl>>>> = Arc::new(Mutex::new(HashMap::new()));
+    let cpus = num_cpus::get();
 
-    let rt_clone = rt.clone();
-    thread::spawn(move || {
-        loop {
-            let (tx_in, mut rx_in) = tokio::sync::mpsc::unbounded_channel::<WorkerCtrl>();
-            rt_clone.block_on(async {
-                tx_in.send(rx_work.recv().await.unwrap()).unwrap();
-            });
+    for i in 0..cpus {
+        let rx_work_clone = rx_works.clone();
 
-            match rx_in.blocking_recv().unwrap() {
-                WorkerCtrl::Dummy { s } => {
-                    info!("WorkerCtrl::Dummy received");
+        {
+            let mut rxv = rx_work_clone.lock().unwrap();
+            rxv.insert(i, rx_work.clone());
+        }
+    }
 
-                    let mut my_ipc_writer = MyIpcWriter {
-                        stream: s,
-                        handle: rt_clone.handle(),
+    for i in 0..cpus {
+        let rt_clone = rt.clone();
+        let rx_works_clone = rx_works.clone();
+        thread::spawn(move || {
+            loop {
+                let mut rx: Option<AsyncReceiver<WorkerCtrl>> = None;
+
+                {
+                    let rxval = match rx_works_clone.lock() {
+                        Ok(v) => v,
+                        Err(e) => {
+                            error!("T{i}: lock failed: {e}");
+                            break;
+                        }
                     };
 
-                    let (schema, batches) = create_batches().unwrap();
-                    let mut writer = StreamWriter::try_new(&mut my_ipc_writer, &schema).unwrap();
-
-                    for b in batches.iter() {
-                        writer.write(&b).unwrap();
+                    if let Some(v) = rxval.get(&i) {
+                        rx = Some(v.clone());
                     }
+                }
 
-                    writer.finish().unwrap();
+                let (tx_in, mut rx_in) = tokio::sync::mpsc::unbounded_channel::<WorkerCtrl>();
+                rt_clone.block_on(async {
+                    tx_in.send(rx.unwrap().recv().await.unwrap()).unwrap();
+                });
+
+                match rx_in.blocking_recv().unwrap() {
+                    WorkerCtrl::Dummy { s } => {
+                        info!("T{i}: WorkerCtrl::Dummy received");
+
+                        let mut my_ipc_writer = MyIpcWriter {
+                            stream: s,
+                            handle: rt_clone.handle(),
+                        };
+
+                        let (schema, batches) = create_batches().unwrap();
+                        let mut writer = StreamWriter::try_new(&mut my_ipc_writer, &schema).unwrap();
+
+                        for b in batches.iter() {
+                            writer.write(&b).unwrap();
+                        }
+
+                        writer.finish().unwrap();
+                    }
                 }
             }
-        }
-    });
+        });
+    }
 
     let api_host_port = args.api_host_port.clone();
     thread::spawn(move || {

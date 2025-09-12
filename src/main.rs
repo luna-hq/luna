@@ -1,3 +1,4 @@
+mod ipc_writer;
 mod utils;
 
 use anyhow::Result;
@@ -13,6 +14,7 @@ use duckdb::{
     params,
 };
 use hedge_rs::*;
+use ipc_writer::IpcWriter;
 use log::*;
 use std::{
     collections::HashMap,
@@ -27,9 +29,8 @@ use std::{
     time::Instant,
 };
 use tokio::{
-    io::AsyncWriteExt,
     net::{TcpListener, TcpStream},
-    runtime::{Builder, Handle},
+    runtime::Builder,
     sync::mpsc::{self as tokio_mpsc},
 };
 
@@ -468,26 +469,6 @@ fn main() -> Result<()> {
     }
 
     Ok(())
-}
-
-struct IpcWriter<'a> {
-    stream: Arc<Mutex<TcpStream>>,
-    handle: &'a Handle,
-}
-
-impl<'a> std::io::Write for IpcWriter<'a> {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.handle.block_on(async {
-            self.stream.lock().unwrap().write_all(buf).await?;
-            Ok(buf.len())
-        })
-    }
-    fn flush(&mut self) -> std::io::Result<()> {
-        self.handle.block_on(async {
-            self.stream.lock().unwrap().flush().await?;
-            Ok(())
-        })
-    }
 }
 
 fn create_batches() -> Result<(Arc<Schema>, Vec<RecordBatch>)> {

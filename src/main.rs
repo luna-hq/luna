@@ -408,13 +408,13 @@ fn main() -> Result<()> {
                     WorkerCtrl::Dummy { s } => {
                         info!("T{i}: WorkerCtrl::Dummy received");
 
-                        let mut my_ipc_writer = MyIpcWriter {
+                        let mut ipc_writer = IpcWriter {
                             stream: s,
                             handle: rt_clone.handle(),
                         };
 
                         let (schema, batches) = create_batches().unwrap();
-                        let mut writer = StreamWriter::try_new(&mut my_ipc_writer, &schema).unwrap();
+                        let mut writer = StreamWriter::try_new(&mut ipc_writer, &schema).unwrap();
 
                         for b in batches.iter() {
                             writer.write(&b).unwrap();
@@ -459,12 +459,12 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-struct MyIpcWriter<'a> {
+struct IpcWriter<'a> {
     stream: Arc<Mutex<TcpStream>>,
     handle: &'a Handle,
 }
 
-impl<'a> std::io::Write for MyIpcWriter<'a> {
+impl<'a> std::io::Write for IpcWriter<'a> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         self.handle.block_on(async {
             self.stream.lock().unwrap().write_all(buf).await?;

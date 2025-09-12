@@ -30,6 +30,7 @@ use tokio::{
     io::AsyncWriteExt,
     net::{TcpListener, TcpStream},
     runtime::{Builder, Handle},
+    sync::mpsc::{self as tokio_mpsc},
 };
 
 #[macro_use(defer)]
@@ -66,7 +67,8 @@ struct Args {
 
 #[derive(Clone, Debug)]
 enum WorkerCtrl {
-    Dummy { s: Arc<Mutex<TcpStream>> },
+    Dummy,
+    TcpStream { s: Arc<Mutex<TcpStream>> },
 }
 
 fn main() -> Result<()> {
@@ -78,9 +80,9 @@ fn main() -> Result<()> {
         &args.api_host_port, &args.node_id, &args.hedge_db, &args.hedge_table, &args.hedge_lockname,
     );
 
-    'onetime: loop {
+    let _ = (|| -> Result<()> {
         if &args.preload_csv == "?" {
-            break 'onetime;
+            return Ok(());
         }
 
         let conn = Connection::open_in_memory()?;
@@ -298,8 +300,8 @@ fn main() -> Result<()> {
             info!("total={}, len={}", count, rbs.len());
         }
 
-        break 'onetime;
-    }
+        Ok(())
+    })();
 
     let (tx_ctrlc, rx_ctrlc) = channel();
     ctrlc::set_handler(move || tx_ctrlc.send(()).unwrap())?;
@@ -324,40 +326,37 @@ fn main() -> Result<()> {
 
         // Handler thread for both send() and broadcast() APIs.
         let id_handler = args.node_id.clone();
-        thread::spawn(move || {
+        thread::spawn(move || -> Result<()> {
             loop {
                 match rx_comms.recv() {
+                    Err(e) => error!("{e}"),
                     Ok(v) => match v {
                         // This is our 'send' handler. When we are leader, we reply to all
                         // messages coming from other nodes using the send() API here.
                         Comms::ToLeader { msg, tx } => {
-                            let msg_s = String::from_utf8(msg).unwrap();
+                            let msg_s = String::from_utf8(msg)?;
                             info!("[send()] received: {msg_s}");
 
                             // Send our reply back using 'tx'.
                             let mut reply = String::new();
-                            write!(&mut reply, "echo '{msg_s}' from leader:{}", id_handler.to_string()).unwrap();
-                            tx.send(reply.as_bytes().to_vec()).unwrap();
+                            write!(&mut reply, "echo '{msg_s}' from leader:{}", id_handler.to_string())?;
+                            tx.send(reply.as_bytes().to_vec())?;
                         }
                         // This is our 'broadcast' handler. When a node broadcasts a message,
                         // through the broadcast() API, we reply here.
                         Comms::Broadcast { msg, tx } => {
-                            let msg_s = String::from_utf8(msg).unwrap();
+                            let msg_s = String::from_utf8(msg)?;
                             info!("[broadcast()] received: {msg_s}");
 
                             // Send our reply back using 'tx'.
                             let mut reply = String::new();
-                            write!(&mut reply, "echo '{msg_s}' from {}", id_handler.to_string()).unwrap();
-                            tx.send(reply.as_bytes().to_vec()).unwrap();
+                            write!(&mut reply, "echo '{msg_s}' from {}", id_handler.to_string())?;
+                            tx.send(reply.as_bytes().to_vec())?;
                         }
                         Comms::OnLeaderChange(state) => {
                             info!("leader state change: {state}");
                         }
                     },
-                    Err(e) => {
-                        error!("{e}");
-                        continue;
-                    }
                 }
             }
         });
@@ -390,7 +389,7 @@ fn main() -> Result<()> {
                         Ok(v) => v,
                         Err(e) => {
                             error!("T{i}: lock failed: {e}");
-                            break;
+                            return;
                         }
                     };
 
@@ -399,28 +398,40 @@ fn main() -> Result<()> {
                     }
                 }
 
-                let (tx_in, mut rx_in) = tokio::sync::mpsc::unbounded_channel::<WorkerCtrl>();
+                let (tx_in, mut rx_in) = tokio_mpsc::unbounded_channel::<WorkerCtrl>();
                 rt_clone.block_on(async {
                     tx_in.send(rx.unwrap().recv().await.unwrap()).unwrap();
                 });
 
                 match rx_in.blocking_recv().unwrap() {
-                    WorkerCtrl::Dummy { s } => {
-                        info!("T{i}: WorkerCtrl::Dummy received");
+                    WorkerCtrl::Dummy => {}
+                    WorkerCtrl::TcpStream { s } => {
+                        (|| {
+                            info!("T{i}: WorkerCtrl::Dummy received");
 
-                        let mut ipc_writer = IpcWriter {
-                            stream: s,
-                            handle: rt_clone.handle(),
-                        };
+                            let mut ipc_writer = IpcWriter {
+                                stream: s,
+                                handle: rt_clone.handle(),
+                            };
 
-                        let (schema, batches) = create_batches().unwrap();
-                        let mut writer = StreamWriter::try_new(&mut ipc_writer, &schema).unwrap();
+                            let (schema, batches) = match create_batches() {
+                                Err(_) => return,
+                                Ok((s, b)) => (s, b),
+                            };
 
-                        for b in batches.iter() {
-                            writer.write(&b).unwrap();
-                        }
+                            let mut writer = match StreamWriter::try_new(&mut ipc_writer, &schema) {
+                                Err(_) => return,
+                                Ok(v) => v,
+                            };
 
-                        writer.finish().unwrap();
+                            for b in batches.iter() {
+                                if let Err(_) = writer.write(&b) {
+                                    return;
+                                }
+                            }
+
+                            let _ = writer.finish();
+                        })();
                     }
                 }
             }
@@ -440,7 +451,7 @@ fn main() -> Result<()> {
                 let tx_work_clone = tx_work.clone();
                 rt.spawn(async move {
                     tx_work_clone
-                        .send(WorkerCtrl::Dummy {
+                        .send(WorkerCtrl::TcpStream {
                             s: Arc::new(Mutex::new(stream)),
                         })
                         .await

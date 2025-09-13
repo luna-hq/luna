@@ -66,8 +66,8 @@ struct Args {
 
 #[derive(Clone, Debug)]
 enum WorkerCtrl {
-    Dummy,
-    TcpStream { s: Arc<Mutex<TcpStream>> },
+    Exit,
+    HandleTcpStream { stream: Arc<Mutex<TcpStream>> },
 }
 
 fn main() -> Result<()> {
@@ -376,20 +376,18 @@ fn main() -> Result<()> {
         }
     }
 
+    let mut work_handles = vec![];
     for i in 0..cpus {
         let rt_clone = rt.clone();
         let rx_works_clone = rx_works.clone();
-        thread::spawn(move || {
+        work_handles.push(thread::spawn(move || {
             loop {
                 let mut rx: Option<AsyncReceiver<WorkerCtrl>> = None;
 
                 {
                     let rxval = match rx_works_clone.lock() {
+                        Err(_) => return,
                         Ok(v) => v,
-                        Err(e) => {
-                            error!("T{i}: lock failed: {e}");
-                            return;
-                        }
                     };
 
                     if let Some(v) = rxval.get(&i) {
@@ -403,14 +401,14 @@ fn main() -> Result<()> {
                 });
 
                 match rx_in.blocking_recv().unwrap() {
-                    WorkerCtrl::Dummy => {}
-                    WorkerCtrl::TcpStream { s } => {
+                    WorkerCtrl::Exit => return,
+                    WorkerCtrl::HandleTcpStream { stream } => {
                         (|| {
                             let start = Instant::now();
                             defer!(info!("T{i}: WorkerCtrl::TcpStream took {:?}", start.elapsed()));
 
                             let mut ipc_writer = IpcWriter {
-                                stream: s,
+                                stream: stream,
                                 handle: rt_clone.handle(),
                             };
 
@@ -435,12 +433,14 @@ fn main() -> Result<()> {
                     }
                 }
             }
-        });
+        }));
     }
 
+    let rt_api_clone = rt.clone();
     let api_host_port = args.api_host_port.clone();
+    let tx_work_clone = tx_work.clone();
     thread::spawn(move || {
-        rt.block_on(async {
+        rt_api_clone.block_on(async {
             let listen = TcpListener::bind(&api_host_port).await.unwrap();
             info!("listening from {}", &api_host_port);
 
@@ -448,11 +448,11 @@ fn main() -> Result<()> {
                 let (stream, addr) = listen.accept().await.unwrap();
                 info!("accepted connection from: {}", addr);
 
-                let tx_work_clone = tx_work.clone();
-                rt.spawn(async move {
+                let tx_work_clone = tx_work_clone.clone();
+                rt_api_clone.spawn(async move {
                     tx_work_clone
-                        .send(WorkerCtrl::TcpStream {
-                            s: Arc::new(Mutex::new(stream)),
+                        .send(WorkerCtrl::HandleTcpStream {
+                            stream: Arc::new(Mutex::new(stream)),
                         })
                         .await
                         .unwrap();
@@ -461,10 +461,20 @@ fn main() -> Result<()> {
         });
     });
 
-    rx_ctrlc.recv()?; // wait for Ctrl-C
+    rx_ctrlc.recv()?;
 
     if op.len() > 0 {
         op[0].lock().unwrap().close();
+    }
+
+    for _ in work_handles.iter() {
+        rt.clone().block_on(async {
+            tx_work.send(WorkerCtrl::Exit).await.unwrap();
+        });
+    }
+
+    for h in work_handles {
+        h.join().unwrap();
     }
 
     Ok(())

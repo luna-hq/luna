@@ -5,15 +5,14 @@ use arrow_array::{Float64Array, Int32Array, RecordBatch, StringArray};
 use arrow_schema::{DataType, Field, Schema};
 use std::sync::Arc;
 
+#[allow(dead_code)]
 pub fn create_batches() -> Result<(Arc<Schema>, Vec<RecordBatch>)> {
-    // 1. Define the schema for our data.
     let schema = Arc::new(Schema::new(vec![
         Field::new("id", DataType::Int32, false),
         Field::new("value", DataType::Float64, false),
         Field::new("description", DataType::Utf8, false),
     ]));
 
-    // 2. Create the first batch of data.
     let batch1 = RecordBatch::try_new(
         schema.clone(),
         vec![
@@ -23,7 +22,6 @@ pub fn create_batches() -> Result<(Arc<Schema>, Vec<RecordBatch>)> {
         ],
     )?;
 
-    // 3. Create the second batch of data.
     let batch2 = RecordBatch::try_new(
         schema.clone(),
         vec![

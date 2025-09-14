@@ -83,16 +83,8 @@ fn main() -> Result<()> {
     );
 
     let base_conn = Arc::new(Connection::open_in_memory()?);
-
-    {
-        let mut q = String::new();
-        write!(&mut q, "INSTALL httpfs;").unwrap();
-        base_conn.execute(q.as_str(), params![])?;
-
-        q.clear();
-        write!(&mut q, "LOAD httpfs;").unwrap();
-        base_conn.execute(q.as_str(), params![])?;
-    }
+    base_conn.execute("INSTALL httpfs;", params![])?;
+    base_conn.execute("LOAD httpfs;", params![])?;
 
     let dbs: Arc<RwLock<HashMap<String, Arc<Connection>>>> = Arc::new(RwLock::new(HashMap::new()));
 

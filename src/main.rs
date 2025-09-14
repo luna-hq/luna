@@ -69,7 +69,6 @@ struct Args {
 #[derive(Clone, Debug)]
 enum WorkerCtrl {
     Exit,
-    Dummy,
     HandleTcpStream {
         stream: Arc<Mutex<TcpStream>>,
     },
@@ -408,7 +407,6 @@ fn main() -> Result<()> {
 
                 match rx_in.blocking_recv().unwrap() {
                     WorkerCtrl::Exit => return,
-                    WorkerCtrl::Dummy => info!("T{i}: WorkerCtrl::Dummy"),
                     WorkerCtrl::HandleTcpStream { stream } => {
                         let start = Instant::now();
                         defer!(info!("T{i}: WorkerCtrl::TcpStream took {:?}", start.elapsed()));

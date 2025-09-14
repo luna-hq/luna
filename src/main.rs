@@ -70,7 +70,15 @@ struct Args {
 enum WorkerCtrl {
     Exit,
     Dummy,
-    HandleTcpStream { stream: Arc<Mutex<TcpStream>> },
+    HandleTcpStream {
+        stream: Arc<Mutex<TcpStream>>,
+    },
+    HandleProto {
+        stream: Arc<Mutex<TcpStream>>,
+        payload: Vec<u8>,
+        offset: usize,
+        len: usize,
+    },
 }
 
 fn main() -> Result<()> {
@@ -402,51 +410,69 @@ fn main() -> Result<()> {
                     WorkerCtrl::Exit => return,
                     WorkerCtrl::Dummy => info!("T{i}: WorkerCtrl::Dummy"),
                     WorkerCtrl::HandleTcpStream { stream } => {
-                        (|| {
-                            let start = Instant::now();
-                            defer!(info!("T{i}: WorkerCtrl::TcpStream took {:?}", start.elapsed()));
+                        let start = Instant::now();
+                        defer!(info!("T{i}: WorkerCtrl::TcpStream took {:?}", start.elapsed()));
 
-                            rt_clone.block_on(async {
-                                let mut offset = 0;
-                                let mut len = 0;
-                                let mut accum = Vec::new();
-                                let mut buf = vec![0; 10]; // TODO: change to 1024
-                                loop {
-                                    match stream.lock().unwrap().read(&mut buf).await {
-                                        Err(_) => break,
-                                        Ok(n) => {
-                                            if n == 0 {
-                                                break;
-                                            }
+                        rt_clone.block_on(async {
+                            let mut offset = 0;
+                            let mut len = 0;
+                            let mut accum = Vec::new();
+                            let mut buf = vec![0; 1024];
+                            loop {
+                                match stream.lock().unwrap().read(&mut buf).await {
+                                    Err(_) => break,
+                                    Ok(n) => {
+                                        if n == 0 {
+                                            break;
+                                        }
 
-                                            let data = &buf[0..n];
-                                            accum.extend_from_slice(data);
+                                        let data = &buf[0..n];
+                                        accum.extend_from_slice(data);
 
-                                            let delim = memmem::find(&data, b"\r\n");
-                                            if delim.is_some() && len < 1 {
-                                                offset = delim.unwrap() + 2;
-                                                let slen = &accum[1..delim.unwrap()];
-                                                len = match str::from_utf8(slen) {
-                                                    Err(_) => 0,
-                                                    Ok(v) => v.parse::<usize>().unwrap_or(0),
-                                                };
-                                            }
+                                        let delim = memmem::find(&data, b"\r\n");
+                                        if delim.is_some() && len < 1 {
+                                            offset = delim.unwrap() + 2;
+                                            let slen = &accum[1..delim.unwrap()];
+                                            len = match str::from_utf8(slen) {
+                                                Err(_) => 0,
+                                                Ok(v) => v.parse::<usize>().unwrap_or(0),
+                                            };
+                                        }
 
-                                            if ((len + offset) > 0) && accum.len() >= (len + offset) {
-                                                break; // got all data
-                                            }
+                                        if ((len + offset) > 0) && accum.len() >= (len + offset) {
+                                            break; // got all data
+                                        }
 
-                                            if n >= 2 && buf[n - 2] == b'\r' && buf[n - 1] == b'\n' {
-                                                break; // end-of-stream
-                                            }
+                                        if n >= 2 && buf[n - 2] == b'\r' && buf[n - 1] == b'\n' {
+                                            break; // end-of-stream
                                         }
                                     }
                                 }
+                            }
 
-                                let actual_payload = &accum[offset..(len + offset)];
-                                let payload = String::from_utf8_lossy(actual_payload);
-                                info!("T{i}: payload={}", payload);
-                            });
+                            let _ = tx_work_clone
+                                .send(WorkerCtrl::HandleProto {
+                                    stream,
+                                    payload: accum,
+                                    offset,
+                                    len,
+                                })
+                                .await;
+                        });
+                    }
+                    WorkerCtrl::HandleProto {
+                        stream,
+                        payload,
+                        offset,
+                        len,
+                    } => {
+                        (|| {
+                            let start = Instant::now();
+                            defer!(info!("T{i}: WorkerCtrl::HandleProto took {:?}", start.elapsed()));
+
+                            let actual_payload = &payload[offset..(len + offset)];
+                            let payload = String::from_utf8_lossy(actual_payload);
+                            info!("T{i}: payload={}", payload);
 
                             let mut ipc_writer = IpcWriter {
                                 stream: stream,

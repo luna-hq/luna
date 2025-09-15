@@ -86,12 +86,12 @@ impl WorkPool {
                     let mut rx: Option<AsyncReceiver<WorkerCtrl>> = None;
 
                     {
-                        let rxval = match rx_works_clone.lock() {
+                        let mg = match rx_works_clone.lock() {
                             Err(_) => return,
                             Ok(v) => v,
                         };
 
-                        if let Some(v) = rxval.get(&i) {
+                        if let Some(v) = mg.get(&i) {
                             rx = Some(v.clone());
                         }
                     }
@@ -205,7 +205,17 @@ impl WorkPool {
                                             let mut stmt = conn.prepare(&s_line).unwrap();
                                             rbs = stmt.query_arrow([]).unwrap().collect();
                                         }
-                                        _ => {}
+                                        _ => {
+                                            let mut err = String::new();
+                                            write!(&mut err, "-ERR Unknown prefix{DELIM}").unwrap();
+                                            err_rb = vec![
+                                                RecordBatch::try_new(
+                                                    err_schema.clone(),
+                                                    vec![Arc::new(StringArray::from(vec![err.as_str()]))],
+                                                )
+                                                .unwrap(),
+                                            ];
+                                        }
                                     },
                                     _ => {
                                         let mut err = String::new();

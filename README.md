@@ -13,7 +13,7 @@
 
 ## API
 
-A `luna` process maintains a single, in-memory database that can be configured through its TCP-based API exposed, by default, at port `7688` (can be changed through the `--api-host-port` flag). Requests use a variant of Redis' [RESP](https://redis.io/docs/latest/develop/reference/protocol-spec/) spec, specifically, the [Bulk strings](https://redis.io/docs/latest/develop/reference/protocol-spec/#bulk-strings) representation.
+A `luna` process maintains a single, in-memory database that can be configured through its TCP-based API exposed, by default, at port `7688` (can be changed through the `--api-host-port` flag). Requests use a variant of Redis' [RESP](https://redis.io/docs/latest/develop/reference/protocol-spec/) spec, specifically, the [Bulk strings](https://redis.io/docs/latest/develop/reference/protocol-spec/#bulk-strings) representation. Responses, on the other hand, use Arrow's [IPC format](https://arrow.apache.org/docs/format/Columnar.html#format-ipc), in the form of streaming `RecordBatch`es.
 
 ## Build
 

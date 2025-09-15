@@ -13,7 +13,7 @@
 
 ## API
 
-TBD
+A `luna` process maintains a single, in-memory database that can be configured through its TCP-based API exposed by default at port `9090`.
 
 ## Build
 

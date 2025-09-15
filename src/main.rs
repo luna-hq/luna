@@ -1,5 +1,6 @@
 mod gen_work;
 mod ipc_writer;
+mod op_handler;
 mod tcp_server;
 mod utils;
 
@@ -7,18 +8,13 @@ use anyhow::Result;
 use clap::Parser;
 use ctrlc;
 use duckdb::{Connection, params};
-use gen_work::WorkPool;
-use gen_work::WorkerCtrl;
+use gen_work::{WorkPool, WorkerCtrl};
 use hedge_rs::*;
 use ipc_writer::IpcWriter;
 use log::*;
-use std::{
-    fmt::Write as _,
-    sync::{
-        Arc, Mutex,
-        mpsc::{Receiver, Sender, channel},
-    },
-    thread,
+use std::sync::{
+    Arc, Mutex,
+    mpsc::{Receiver, Sender, channel},
 };
 use tcp_server::TcpServer;
 use tokio::runtime::Builder;
@@ -81,35 +77,7 @@ fn main() -> Result<()> {
             op[0].lock().unwrap().run()?;
         }
 
-        let id_handler = args.node_id.clone();
-        thread::spawn(move || -> Result<()> {
-            loop {
-                match rx_comms.recv() {
-                    Err(e) => error!("{e}"),
-                    Ok(v) => match v {
-                        Comms::ToLeader { msg, tx } => {
-                            let msg_s = String::from_utf8(msg)?;
-                            info!("[send()] received: {msg_s}");
-
-                            let mut reply = String::new();
-                            write!(&mut reply, "echo '{msg_s}' from leader:{}", id_handler.to_string())?;
-                            tx.send(reply.as_bytes().to_vec())?;
-                        }
-                        Comms::Broadcast { msg, tx } => {
-                            let msg_s = String::from_utf8(msg)?;
-                            info!("[broadcast()] received: {msg_s}");
-
-                            let mut reply = String::new();
-                            write!(&mut reply, "echo '{msg_s}' from {}", id_handler.to_string())?;
-                            tx.send(reply.as_bytes().to_vec())?;
-                        }
-                        Comms::OnLeaderChange(state) => {
-                            info!("leader state change: {state}");
-                        }
-                    },
-                }
-            }
-        });
+        op_handler::run(args.node_id.clone(), rx_comms);
     }
 
     let rt = Arc::new(Builder::new_multi_thread().enable_all().build()?);

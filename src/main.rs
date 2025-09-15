@@ -4,7 +4,7 @@ mod op_handler;
 mod tcp_server;
 mod utils;
 
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use clap::Parser;
 use ctrlc;
 use duckdb::{Connection, params};
@@ -74,7 +74,12 @@ fn main() -> Result<()> {
         ))];
 
         {
-            op[0].lock().unwrap().run()?;
+            let mut mg = match op[0].lock() {
+                Err(e) => return Err(anyhow!("{e}")),
+                Ok(v) => v,
+            };
+
+            mg.run()?;
         }
 
         op_handler::run(args.node_id.clone(), rx_comms);
@@ -95,7 +100,12 @@ fn main() -> Result<()> {
     rx_ctrlc.recv()?;
 
     if op.len() > 0 {
-        op[0].lock().unwrap().close();
+        let mut mg = match op[0].lock() {
+            Err(e) => return Err(anyhow!("{e}")),
+            Ok(v) => v,
+        };
+
+        mg.close();
     }
 
     wp.close();

@@ -1,5 +1,5 @@
 use crate::IpcWriter;
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use arrow_array::{RecordBatch, StringArray};
 use arrow_ipc::writer::StreamWriter;
 use arrow_schema::{DataType, Field, Schema};
@@ -71,8 +71,12 @@ impl WorkPool {
             let rx_works_clone = rx_works.clone();
 
             {
-                let mut rxv = rx_works_clone.lock().unwrap();
-                rxv.insert(i, self.rx_work.clone());
+                let mut mg = match rx_works_clone.lock() {
+                    Err(e) => return Err(anyhow!("{e}")),
+                    Ok(v) => v,
+                };
+
+                mg.insert(i, self.rx_work.clone());
             }
         }
 
@@ -87,7 +91,7 @@ impl WorkPool {
 
                     {
                         let mg = match rx_works_clone.lock() {
-                            Err(_) => return Ok(()),
+                            Err(e) => return Err(anyhow!("{e}")),
                             Ok(v) => v,
                         };
 

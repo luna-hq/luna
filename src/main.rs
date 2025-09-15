@@ -7,7 +7,7 @@ use anyhow::Result;
 use clap::Parser;
 use ctrlc;
 use duckdb::{Connection, params};
-use gen_work::ThreadPool;
+use gen_work::WorkPool;
 use gen_work::WorkerCtrl;
 use hedge_rs::*;
 use ipc_writer::IpcWriter;
@@ -119,8 +119,8 @@ fn main() -> Result<()> {
     base_conn.execute("LOAD httpfs;", params![])?;
 
     let (tx_work, rx_work) = async_channel::unbounded::<WorkerCtrl>();
-    let mut tp = ThreadPool::new(rt.clone(), base_conn.try_clone()?, tx_work.clone(), rx_work.clone());
-    tp.run()?;
+    let mut wp = WorkPool::new(rt.clone(), base_conn.try_clone()?, tx_work.clone(), rx_work.clone());
+    wp.run()?;
 
     TcpServer::new(rt.clone(), args.api_host_port.clone(), tx_work.clone()).run();
 
@@ -130,6 +130,6 @@ fn main() -> Result<()> {
         op[0].lock().unwrap().close();
     }
 
-    tp.close();
+    wp.close();
     Ok(())
 }

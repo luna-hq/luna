@@ -38,7 +38,7 @@ pub enum WorkerCtrl {
     },
 }
 
-pub struct ThreadPool {
+pub struct WorkPool {
     rt: Arc<Runtime>,
     conn: Connection,
     tx_work: AsyncSender<WorkerCtrl>,
@@ -46,14 +46,14 @@ pub struct ThreadPool {
     work_handles: Vec<Option<JoinHandle<()>>>,
 }
 
-impl ThreadPool {
+impl WorkPool {
     pub fn new(
         rt: Arc<Runtime>,
         conn: Connection,
         tx_work: AsyncSender<WorkerCtrl>,
         rx_work: AsyncReceiver<WorkerCtrl>,
     ) -> Self {
-        ThreadPool {
+        WorkPool {
             rt,
             conn,
             tx_work,

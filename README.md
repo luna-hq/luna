@@ -10,7 +10,7 @@
 At the moment, it is tested (and expected) to run on a single machine, although a private fork is being developed to support distributed clusters in the future.
 
 > [!NOTE]
-> Development is supported (and funded) by [Alphaus, Inc.](https://www.alphaus.cloud/en/) as it's also being used internally.
+> **Luna**'s development is supported (and funded) by [Alphaus, Inc.](https://www.alphaus.cloud/en/) as it's also being used internally.
 
 ## Build
 

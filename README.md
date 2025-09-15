@@ -5,7 +5,7 @@
 
 ## Overview
 
-`luna` is an open-source, in-memory SQL interface to your object storage data. Think of it as an open-source alternative to Amazon Athena. Built on top of [DuckDB](https://duckdb.org/) and [Apache Arrow](https://arrow.apache.org/), it supports data sources such as [S3](https://aws.amazon.com/s3/), [GCS](https://cloud.google.com/storage?hl=en), and local; and data types such as `CSV`, `JSON`, `PARQUET`, etc.
+`luna` is an open-source, in-memory SQL interface to your object storage data. Think of it as an open-source alternative to Amazon Athena. Built on top of [DuckDB](https://duckdb.org/) and [Apache Arrow](https://arrow.apache.org/), it supports data sources such as [S3](https://aws.amazon.com/s3/), [GCS](https://cloud.google.com/storage?hl=en), and local filesystem; and data types such as `CSV`, `JSON`, `PARQUET`, etc.
 
 ```sh
 # Sample run:

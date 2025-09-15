@@ -19,11 +19,10 @@ use log::*;
 use memchr::memmem;
 use std::{
     collections::HashMap,
-    env,
     fmt::Write as _,
     str,
     sync::{
-        Arc, Mutex, RwLock,
+        Arc, Mutex,
         mpsc::{Receiver, Sender, channel},
     },
     thread,
@@ -38,6 +37,9 @@ use tokio::{
 
 #[macro_use(defer)]
 extern crate scopeguard;
+
+pub const DELIM: &str = "\r\n";
+pub const OK: &str = "+OK\r\n";
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -217,7 +219,7 @@ fn main() -> Result<()> {
                                         let data = &buf[0..n];
                                         accum.extend_from_slice(data);
 
-                                        let delim = memmem::find(&data, b"\r\n");
+                                        let delim = memmem::find(&data, DELIM.as_bytes());
                                         if delim.is_some() && len < 1 {
                                             offset = delim.unwrap() + 2;
                                             let slen = &accum[1..delim.unwrap()];
@@ -231,21 +233,25 @@ fn main() -> Result<()> {
                                             break; // got all data
                                         }
 
-                                        if n >= 2 && buf[n - 2] == b'\r' && buf[n - 1] == b'\n' {
+                                        if n >= 2
+                                            && buf[n - 2] == DELIM.as_bytes()[0]
+                                            && buf[n - 1] == DELIM.as_bytes()[1]
+                                        {
                                             break; // end-of-stream
                                         }
                                     }
                                 }
                             }
 
-                            let _ = tx_work_clone
+                            tx_work_clone
                                 .send(WorkerCtrl::HandleProto {
                                     stream,
                                     payload: accum,
                                     offset,
                                     len,
                                 })
-                                .await;
+                                .await
+                                .unwrap();
                         });
                     }
                     WorkerCtrl::HandleProto {
@@ -269,7 +275,7 @@ fn main() -> Result<()> {
                                 b'$' => match conn.execute(&s_line, params![]) {
                                     Err(e) => {
                                         let mut err = String::new();
-                                        write!(&mut err, "-{e}\r\n").unwrap();
+                                        write!(&mut err, "-{e}{DELIM}").unwrap();
                                         rb = vec![
                                             RecordBatch::try_new(
                                                 schema.clone(),
@@ -282,7 +288,7 @@ fn main() -> Result<()> {
                                         rb = vec![
                                             RecordBatch::try_new(
                                                 schema.clone(),
-                                                vec![Arc::new(StringArray::from(vec!["+OK\r\n"]))],
+                                                vec![Arc::new(StringArray::from(vec![OK]))],
                                             )
                                             .unwrap(),
                                         ];

@@ -27,7 +27,7 @@ extern crate scopeguard;
 #[clap(verbatim_doc_comment)]
 struct Args {
     /// API (TCP) host:port (format should be host:port)
-    #[arg(long, long, default_value = "0.0.0.0:9090")]
+    #[arg(long, long, default_value = "0.0.0.0:7688")]
     api_host_port: String,
 
     /// Node ID (format should be host:port)

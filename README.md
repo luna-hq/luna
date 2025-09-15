@@ -12,7 +12,12 @@ At the moment, it is tested (and expected) to run on a single machine, although 
 > [!NOTE]
 > Development is supported (and funded) by [Alphaus, Inc.](https://www.alphaus.cloud/en/) as it's also being used internally.
 
+## Building
+
 ```sh
+# Build binary:
+$ cargo build
+
 # Sample run:
 $ RUST_LOG=info ./target/debug/luna
 ```

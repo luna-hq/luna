@@ -327,6 +327,8 @@ fn main() -> Result<()> {
                             } else {
                                 let (s, _, _) = rbs[0].clone().into_parts();
                                 let schema: Arc<Schema>;
+
+                                // FIXME: There must be a better way than transmute() here.
                                 unsafe {
                                     schema = std::mem::transmute(s.clone());
                                 }
@@ -338,6 +340,8 @@ fn main() -> Result<()> {
 
                                 for rb in rbs {
                                     let rb_t: RecordBatch;
+
+                                    // FIXME: There must be a better way than transmute() here.
                                     unsafe {
                                         rb_t = std::mem::transmute(rb);
                                     }

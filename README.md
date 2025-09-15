@@ -1,5 +1,5 @@
 > [!CAUTION]
-> Alpha-level software. Development is actively ongoing. APIs most likely will change.
+> Alpha-level software. Development is actively ongoing. API will most likely change.
 
 [![main](https://github.com/flowerinthenight/luna/actions/workflows/main.yml/badge.svg)](https://github.com/flowerinthenight/luna/actions/workflows/main.yml)
 

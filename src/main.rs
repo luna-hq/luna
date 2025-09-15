@@ -1,4 +1,5 @@
 mod ipc_writer;
+mod tcp_server;
 mod utils;
 
 use anyhow::Result;
@@ -24,6 +25,7 @@ use std::{
     thread,
     time::Instant,
 };
+use tcp_server::TcpServer;
 use tokio::{
     io::AsyncReadExt,
     net::{TcpListener, TcpStream},
@@ -114,31 +116,24 @@ fn main() -> Result<()> {
             op[0].lock().unwrap().run()?;
         }
 
-        // Handler thread for both send() and broadcast() APIs.
         let id_handler = args.node_id.clone();
         thread::spawn(move || -> Result<()> {
             loop {
                 match rx_comms.recv() {
                     Err(e) => error!("{e}"),
                     Ok(v) => match v {
-                        // This is our 'send' handler. When we are leader, we reply to all
-                        // messages coming from other nodes using the send() API here.
                         Comms::ToLeader { msg, tx } => {
                             let msg_s = String::from_utf8(msg)?;
                             info!("[send()] received: {msg_s}");
 
-                            // Send our reply back using 'tx'.
                             let mut reply = String::new();
                             write!(&mut reply, "echo '{msg_s}' from leader:{}", id_handler.to_string())?;
                             tx.send(reply.as_bytes().to_vec())?;
                         }
-                        // This is our 'broadcast' handler. When a node broadcasts a message,
-                        // through the broadcast() API, we reply here.
                         Comms::Broadcast { msg, tx } => {
                             let msg_s = String::from_utf8(msg)?;
                             info!("[broadcast()] received: {msg_s}");
 
-                            // Send our reply back using 'tx'.
                             let mut reply = String::new();
                             write!(&mut reply, "echo '{msg_s}' from {}", id_handler.to_string())?;
                             tx.send(reply.as_bytes().to_vec())?;
@@ -358,30 +353,7 @@ fn main() -> Result<()> {
         }));
     }
 
-    let rt_clone = rt.clone();
-    let api_host_port = args.api_host_port.clone();
-    let tx_work_clone = tx_work.clone();
-    thread::spawn(move || {
-        rt_clone.block_on(async {
-            let listen = TcpListener::bind(&api_host_port).await.unwrap();
-            info!("listening from {}", &api_host_port);
-
-            loop {
-                let (stream, addr) = listen.accept().await.unwrap();
-                info!("accepted connection from {}", addr);
-
-                let tx_work_clone = tx_work_clone.clone();
-                rt_clone.spawn(async move {
-                    tx_work_clone
-                        .send(WorkerCtrl::HandleTcpStream {
-                            stream: Arc::new(Mutex::new(stream)),
-                        })
-                        .await
-                        .unwrap();
-                });
-            }
-        });
-    });
+    TcpServer::new(rt.clone(), args.api_host_port.clone(), tx_work.clone()).start();
 
     rx_ctrlc.recv()?;
 

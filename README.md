@@ -13,7 +13,7 @@
 
 ## API
 
-A `luna` process maintains a single, in-memory database that can be configured through its TCP-based API exposed, by default, at port `9090` (can be changed through `--api-host-port` flag).
+A `luna` process maintains a single, in-memory database that can be configured through its TCP-based API exposed, by default, at port `7688` (can be changed through `--api-host-port` flag).
 
 ## Build
 

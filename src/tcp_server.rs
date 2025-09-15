@@ -1,3 +1,4 @@
+use crate::WorkerCtrl;
 use async_channel::Sender as AsyncSender;
 use log::*;
 use std::{
@@ -5,8 +6,6 @@ use std::{
     thread,
 };
 use tokio::{net::TcpListener, runtime::Runtime};
-
-use crate::WorkerCtrl;
 
 pub struct TcpServer {
     rt: Arc<Runtime>,
@@ -19,7 +18,7 @@ impl TcpServer {
         TcpServer { rt, host_port, tx_work }
     }
 
-    pub fn start(&self) {
+    pub fn run(&self) {
         let rt = self.rt.clone();
         let host_port = self.host_port.clone();
         let tx_work = self.tx_work.clone();

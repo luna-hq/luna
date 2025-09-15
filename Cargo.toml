@@ -3,7 +3,7 @@ name = "luna"
 version = "0.1.0"
 edition = "2024"
 authors = ["flowerinthenight <root@flowerinthenight.com>"]
-description = "SQL layer to object storage data."
+description = "In-memory SQL layer to object storage data."
 license = "Apache-2.0"
 repository = "https://github.com/flowerinthenight/luna"
 

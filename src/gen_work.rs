@@ -287,13 +287,13 @@ fn handle_proto(
     };
 
     if err_rb.len() > 0 {
-        let mut writer = match StreamWriter::try_new(&mut ipc_writer, &err_schema) {
-            Err(_) => return Ok(()),
+        let mut sw = match StreamWriter::try_new(&mut ipc_writer, &err_schema) {
+            Err(e) => return Err(anyhow!("{e}")),
             Ok(v) => v,
         };
 
-        let _ = writer.write(&err_rb[0]);
-        let _ = writer.finish();
+        let _ = sw.write(&err_rb[0]);
+        sw.finish()?;
     } else {
         let (schema, _, _) = rbs[0].clone().into_parts();
         let schema_t: Arc<Schema>;
@@ -302,8 +302,8 @@ fn handle_proto(
             schema_t = mem::transmute(schema.clone());
         }
 
-        let mut writer = match StreamWriter::try_new(&mut ipc_writer, &schema_t) {
-            Err(_) => return Ok(()),
+        let mut sw = match StreamWriter::try_new(&mut ipc_writer, &schema_t) {
+            Err(e) => return Err(anyhow!("{e}")),
             Ok(v) => v,
         };
 
@@ -314,10 +314,10 @@ fn handle_proto(
                 rb_t = mem::transmute(rb);
             }
 
-            let _ = writer.write(&rb_t);
+            let _ = sw.write(&rb_t);
         }
 
-        let _ = writer.finish();
+        sw.finish()?;
     }
 
     Ok(())

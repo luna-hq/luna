@@ -23,7 +23,7 @@ use tokio::{
 };
 
 pub const DELIM: &str = "\r\n";
-pub const OK: &str = "+OK\r\n";
+pub const OK: &str = "OK";
 
 #[derive(Clone, Debug)]
 pub enum WorkerCtrl {
@@ -182,7 +182,7 @@ impl WorkPool {
                                         b"x:" => match conn.execute(&s_line, params![]) {
                                             Err(e) => {
                                                 let mut err = String::new();
-                                                write!(&mut err, "-{e}{DELIM}").unwrap();
+                                                write!(&mut err, "{e}").unwrap();
                                                 err_rb = vec![
                                                     RecordBatch::try_new(
                                                         err_schema.clone(),
@@ -203,11 +203,25 @@ impl WorkPool {
                                         },
                                         b"q:" => {
                                             let mut stmt = conn.prepare(&s_line).unwrap();
-                                            rbs = stmt.query_arrow([]).unwrap().collect();
+                                            match stmt.query_arrow([]) {
+                                                Err(e) => {
+                                                    let mut err = String::new();
+                                                    write!(&mut err, "{e}").unwrap();
+                                                    err_rb = vec![
+                                                        RecordBatch::try_new(
+                                                            err_schema.clone(),
+                                                            vec![Arc::new(StringArray::from(vec![err.as_str()]))],
+                                                        )
+                                                        .unwrap(),
+                                                    ];
+                                                }
+                                                Ok(v) => rbs = v.collect(),
+                                            }
                                         }
                                         _ => {
+                                            let pfx = String::from_utf8_lossy(&payload[offset..(offset + 2)]);
                                             let mut err = String::new();
-                                            write!(&mut err, "-ERR Unknown prefix{DELIM}").unwrap();
+                                            write!(&mut err, "Unknown prefix '{pfx}'").unwrap();
                                             err_rb = vec![
                                                 RecordBatch::try_new(
                                                     err_schema.clone(),
@@ -218,8 +232,9 @@ impl WorkPool {
                                         }
                                     },
                                     _ => {
+                                        let cmd = String::from(payload[0] as char);
                                         let mut err = String::new();
-                                        write!(&mut err, "-ERR Unknown command{DELIM}").unwrap();
+                                        write!(&mut err, "Unknown command '{cmd}'").unwrap();
                                         err_rb = vec![
                                             RecordBatch::try_new(
                                                 err_schema.clone(),
@@ -248,7 +263,7 @@ impl WorkPool {
                                     let schema_t: Arc<Schema>;
 
                                     unsafe {
-                                        // FIXME: There must be a better way than transmute() here.
+                                        // FIXME: There must be a better way than this.
                                         schema_t = mem::transmute(schema.clone());
                                     }
 
@@ -261,7 +276,7 @@ impl WorkPool {
                                         let rb_t: RecordBatch;
 
                                         unsafe {
-                                            // FIXME: There must be a better way than transmute() here.
+                                            // FIXME: There must be a better way than this.
                                             rb_t = mem::transmute(rb);
                                         }
 

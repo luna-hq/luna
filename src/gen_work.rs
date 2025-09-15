@@ -104,16 +104,14 @@ impl WorkPool {
                     match rx_in.blocking_recv().unwrap() {
                         WorkerCtrl::Exit => return Ok(()),
                         WorkerCtrl::HandleTcpStream { stream } => {
-                            handle_tcp_stream(i, rt_clone.clone(), stream, tx_work_clone.clone());
+                            handle_tcp_stream(i, rt_clone.clone(), stream, tx_work_clone.clone())
                         }
                         WorkerCtrl::HandleProto {
                             stream,
                             payload,
                             offset,
                             len,
-                        } => {
-                            handle_proto(i, rt_clone.clone(), conn.try_clone()?, stream, payload, offset, len);
-                        }
+                        } => handle_proto(i, rt_clone.clone(), conn.try_clone()?, stream, payload, offset, len)?,
                     }
                 }
             });
@@ -200,7 +198,7 @@ fn handle_proto(
     payload: Vec<u8>,
     offset: usize,
     len: usize,
-) {
+) -> Result<()> {
     let start = Instant::now();
     defer!(info!("T{i}: handle_proto took {:?}", start.elapsed()));
 
@@ -217,19 +215,17 @@ fn handle_proto(
             b"x:" => match conn.execute(&s_line, params![]) {
                 Err(e) => {
                     let mut err = String::new();
-                    write!(&mut err, "{e}").unwrap();
-                    err_rb = vec![
-                        RecordBatch::try_new(
-                            err_schema.clone(),
-                            vec![Arc::new(StringArray::from(vec![err.as_str()]))],
-                        )
-                        .unwrap(),
-                    ];
+                    write!(&mut err, "{e}")?;
+                    err_rb = vec![RecordBatch::try_new(
+                        err_schema.clone(),
+                        vec![Arc::new(StringArray::from(vec![err.as_str()]))],
+                    )?];
                 }
                 Ok(_) => {
-                    err_rb = vec![
-                        RecordBatch::try_new(err_schema.clone(), vec![Arc::new(StringArray::from(vec![OK]))]).unwrap(),
-                    ];
+                    err_rb = vec![RecordBatch::try_new(
+                        err_schema.clone(),
+                        vec![Arc::new(StringArray::from(vec![OK]))],
+                    )?];
                 }
             },
             b"q:" => {
@@ -237,14 +233,11 @@ fn handle_proto(
                 match conn.prepare(&s_line) {
                     Err(e) => {
                         let mut err = String::new();
-                        write!(&mut err, "{e}").unwrap();
-                        err_rb = vec![
-                            RecordBatch::try_new(
-                                err_schema.clone(),
-                                vec![Arc::new(StringArray::from(vec![err.as_str()]))],
-                            )
-                            .unwrap(),
-                        ];
+                        write!(&mut err, "{e}")?;
+                        err_rb = vec![RecordBatch::try_new(
+                            err_schema.clone(),
+                            vec![Arc::new(StringArray::from(vec![err.as_str()]))],
+                        )?];
                     }
                     Ok(v) => stmt = vec![v],
                 };
@@ -253,14 +246,11 @@ fn handle_proto(
                     match stmt[0].query_arrow([]) {
                         Err(e) => {
                             let mut err = String::new();
-                            write!(&mut err, "{e}").unwrap();
-                            err_rb = vec![
-                                RecordBatch::try_new(
-                                    err_schema.clone(),
-                                    vec![Arc::new(StringArray::from(vec![err.as_str()]))],
-                                )
-                                .unwrap(),
-                            ];
+                            write!(&mut err, "{e}")?;
+                            err_rb = vec![RecordBatch::try_new(
+                                err_schema.clone(),
+                                vec![Arc::new(StringArray::from(vec![err.as_str()]))],
+                            )?];
                         }
                         Ok(v) => rbs = v.collect(),
                     }
@@ -269,27 +259,21 @@ fn handle_proto(
             _ => {
                 let pfx = String::from_utf8_lossy(&payload[offset..(offset + 2)]);
                 let mut err = String::new();
-                write!(&mut err, "Unknown prefix '{pfx}'").unwrap();
-                err_rb = vec![
-                    RecordBatch::try_new(
-                        err_schema.clone(),
-                        vec![Arc::new(StringArray::from(vec![err.as_str()]))],
-                    )
-                    .unwrap(),
-                ];
+                write!(&mut err, "Unknown prefix '{pfx}'")?;
+                err_rb = vec![RecordBatch::try_new(
+                    err_schema.clone(),
+                    vec![Arc::new(StringArray::from(vec![err.as_str()]))],
+                )?];
             }
         },
         _ => {
             let cmd = String::from(payload[0] as char);
             let mut err = String::new();
-            write!(&mut err, "Unknown command '{cmd}'").unwrap();
-            err_rb = vec![
-                RecordBatch::try_new(
-                    err_schema.clone(),
-                    vec![Arc::new(StringArray::from(vec![err.as_str()]))],
-                )
-                .unwrap(),
-            ];
+            write!(&mut err, "Unknown command '{cmd}'")?;
+            err_rb = vec![RecordBatch::try_new(
+                err_schema.clone(),
+                vec![Arc::new(StringArray::from(vec![err.as_str()]))],
+            )?];
         }
     }
 
@@ -300,7 +284,7 @@ fn handle_proto(
 
     if err_rb.len() > 0 {
         let mut writer = match StreamWriter::try_new(&mut ipc_writer, &err_schema) {
-            Err(_) => return,
+            Err(_) => return Ok(()),
             Ok(v) => v,
         };
 
@@ -315,7 +299,7 @@ fn handle_proto(
         }
 
         let mut writer = match StreamWriter::try_new(&mut ipc_writer, &schema_t) {
-            Err(_) => return,
+            Err(_) => return Ok(()),
             Ok(v) => v,
         };
 
@@ -331,4 +315,6 @@ fn handle_proto(
 
         let _ = writer.finish();
     }
+
+    Ok(())
 }

@@ -263,7 +263,7 @@ fn main() -> Result<()> {
                             info!("T{i}: payload={}", s_line);
 
                             let mut rb = vec![];
-                            let schema = Arc::new(Schema::new(vec![Field::new("result", DataType::Utf8, false)]));
+                            let schema = Arc::new(Schema::new(vec![Field::new("error", DataType::Utf8, false)]));
 
                             match &payload[0] {
                                 b'$' => match conn.execute(&s_line, params![]) {

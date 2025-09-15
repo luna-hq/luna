@@ -1,5 +1,5 @@
 > [!CAUTION]
-> This software is specific to [Alphaus](https://alphaus.cloud/).
+> Alpha-level software. Development is actively ongoing. APIs most likely will change.
 
 ```sh
 # Sample run:

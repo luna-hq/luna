@@ -10,6 +10,7 @@ use memchr::memmem;
 use std::{
     collections::HashMap,
     fmt::Write as _,
+    mem,
     sync::{Arc, Mutex},
     thread::{self, JoinHandle},
     time::Instant,
@@ -238,7 +239,7 @@ impl WorkPool {
 
                                     // FIXME: There must be a better way than transmute() here.
                                     unsafe {
-                                        schema_t = std::mem::transmute(schema.clone());
+                                        schema_t = mem::transmute(schema.clone());
                                     }
 
                                     let mut writer = match StreamWriter::try_new(&mut ipc_writer, &schema_t) {
@@ -251,7 +252,7 @@ impl WorkPool {
 
                                         // FIXME: There must be a better way than transmute() here.
                                         unsafe {
-                                            rb_t = std::mem::transmute(rb);
+                                            rb_t = mem::transmute(rb);
                                         }
 
                                         let _ = writer.write(&rb_t);

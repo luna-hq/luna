@@ -309,7 +309,6 @@ fn handle_proto(
     } else {
         let (schema, _, _) = rbs[0].clone().into_parts();
         let schema_t: Arc<Schema>;
-
         unsafe {
             // FIXME: There must be a better way than this.
             schema_t = mem::transmute(schema.clone());
@@ -322,7 +321,6 @@ fn handle_proto(
 
         for rb in rbs {
             let rb_t: RecordBatch;
-
             unsafe {
                 // FIXME: There must be a better way than this.
                 rb_t = mem::transmute(rb);

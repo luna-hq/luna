@@ -247,8 +247,8 @@ impl WorkPool {
                                     let (schema, _, _) = rbs[0].clone().into_parts();
                                     let schema_t: Arc<Schema>;
 
-                                    // FIXME: There must be a better way than transmute() here.
                                     unsafe {
+                                        // FIXME: There must be a better way than transmute() here.
                                         schema_t = mem::transmute(schema.clone());
                                     }
 
@@ -260,8 +260,8 @@ impl WorkPool {
                                     for rb in rbs {
                                         let rb_t: RecordBatch;
 
-                                        // FIXME: There must be a better way than transmute() here.
                                         unsafe {
+                                            // FIXME: There must be a better way than transmute() here.
                                             rb_t = mem::transmute(rb);
                                         }
 

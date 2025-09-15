@@ -44,7 +44,7 @@ pub struct WorkPool {
     conn: Connection,
     tx_work: AsyncSender<WorkerCtrl>,
     rx_work: AsyncReceiver<WorkerCtrl>,
-    work_handles: Vec<Option<JoinHandle<()>>>,
+    work_handles: Vec<Option<JoinHandle<Result<()>>>>,
 }
 
 impl WorkPool {
@@ -81,13 +81,13 @@ impl WorkPool {
             let conn = self.conn.try_clone()?;
             let tx_work_clone = self.tx_work.clone();
             let rx_works_clone = rx_works.clone();
-            let h = thread::spawn(move || {
+            let h = thread::spawn(move || -> Result<()> {
                 loop {
                     let mut rx: Option<AsyncReceiver<WorkerCtrl>> = None;
 
                     {
                         let mg = match rx_works_clone.lock() {
-                            Err(_) => return,
+                            Err(_) => return Ok(()),
                             Ok(v) => v,
                         };
 
@@ -102,61 +102,9 @@ impl WorkPool {
                     });
 
                     match rx_in.blocking_recv().unwrap() {
-                        WorkerCtrl::Exit => return,
+                        WorkerCtrl::Exit => return Ok(()),
                         WorkerCtrl::HandleTcpStream { stream } => {
-                            let start = Instant::now();
-                            defer!(info!("T{i}: WorkerCtrl::TcpStream took {:?}", start.elapsed()));
-
-                            rt_clone.block_on(async {
-                                let mut offset = 0;
-                                let mut len = 0;
-                                let mut accum = Vec::new();
-                                let mut buf = vec![0; 1024];
-                                loop {
-                                    match stream.lock().unwrap().read(&mut buf).await {
-                                        Err(_) => break,
-                                        Ok(n) => {
-                                            if n == 0 {
-                                                break;
-                                            }
-
-                                            let data = &buf[0..n];
-                                            accum.extend_from_slice(data);
-
-                                            let delim = memmem::find(&data, DELIM.as_bytes());
-                                            if delim.is_some() && len < 1 {
-                                                offset = delim.unwrap() + 2;
-                                                let slen = &accum[1..delim.unwrap()];
-                                                len = match str::from_utf8(slen) {
-                                                    Err(_) => 0,
-                                                    Ok(v) => v.parse::<usize>().unwrap_or(0),
-                                                };
-                                            }
-
-                                            if ((len + offset) > 0) && accum.len() >= (len + offset) {
-                                                break; // got all data
-                                            }
-
-                                            if n >= 2
-                                                && buf[n - 2] == DELIM.as_bytes()[0]
-                                                && buf[n - 1] == DELIM.as_bytes()[1]
-                                            {
-                                                break; // end-of-stream
-                                            }
-                                        }
-                                    }
-                                }
-
-                                tx_work_clone
-                                    .send(WorkerCtrl::HandleProto {
-                                        stream,
-                                        payload: accum,
-                                        offset,
-                                        len,
-                                    })
-                                    .await
-                                    .unwrap();
-                            });
+                            handle_tcp_stream(i, rt_clone.clone(), stream, tx_work_clone.clone());
                         }
                         WorkerCtrl::HandleProto {
                             stream,
@@ -164,128 +112,7 @@ impl WorkPool {
                             offset,
                             len,
                         } => {
-                            (|| {
-                                let start = Instant::now();
-                                defer!(info!("T{i}: WorkerCtrl::HandleProto took {:?}", start.elapsed()));
-
-                                let line = &payload[(offset + 2)..(len + offset)];
-                                let s_line = String::from_utf8_lossy(line);
-                                info!("T{i}: payload={}", s_line);
-
-                                let mut rbs: Vec<DuckRecordBatch> = vec![];
-                                let mut err_rb = vec![];
-                                let err_schema =
-                                    Arc::new(Schema::new(vec![Field::new("error", DataType::Utf8, false)]));
-
-                                match &payload[0] {
-                                    b'$' => match &payload[offset..(offset + 2)] {
-                                        b"x:" => match conn.execute(&s_line, params![]) {
-                                            Err(e) => {
-                                                let mut err = String::new();
-                                                write!(&mut err, "{e}").unwrap();
-                                                err_rb = vec![
-                                                    RecordBatch::try_new(
-                                                        err_schema.clone(),
-                                                        vec![Arc::new(StringArray::from(vec![err.as_str()]))],
-                                                    )
-                                                    .unwrap(),
-                                                ];
-                                            }
-                                            Ok(_) => {
-                                                err_rb = vec![
-                                                    RecordBatch::try_new(
-                                                        err_schema.clone(),
-                                                        vec![Arc::new(StringArray::from(vec![OK]))],
-                                                    )
-                                                    .unwrap(),
-                                                ];
-                                            }
-                                        },
-                                        b"q:" => {
-                                            let mut stmt = conn.prepare(&s_line).unwrap();
-                                            match stmt.query_arrow([]) {
-                                                Err(e) => {
-                                                    let mut err = String::new();
-                                                    write!(&mut err, "{e}").unwrap();
-                                                    err_rb = vec![
-                                                        RecordBatch::try_new(
-                                                            err_schema.clone(),
-                                                            vec![Arc::new(StringArray::from(vec![err.as_str()]))],
-                                                        )
-                                                        .unwrap(),
-                                                    ];
-                                                }
-                                                Ok(v) => rbs = v.collect(),
-                                            }
-                                        }
-                                        _ => {
-                                            let pfx = String::from_utf8_lossy(&payload[offset..(offset + 2)]);
-                                            let mut err = String::new();
-                                            write!(&mut err, "Unknown prefix '{pfx}'").unwrap();
-                                            err_rb = vec![
-                                                RecordBatch::try_new(
-                                                    err_schema.clone(),
-                                                    vec![Arc::new(StringArray::from(vec![err.as_str()]))],
-                                                )
-                                                .unwrap(),
-                                            ];
-                                        }
-                                    },
-                                    _ => {
-                                        let cmd = String::from(payload[0] as char);
-                                        let mut err = String::new();
-                                        write!(&mut err, "Unknown command '{cmd}'").unwrap();
-                                        err_rb = vec![
-                                            RecordBatch::try_new(
-                                                err_schema.clone(),
-                                                vec![Arc::new(StringArray::from(vec![err.as_str()]))],
-                                            )
-                                            .unwrap(),
-                                        ];
-                                    }
-                                }
-
-                                let mut ipc_writer = IpcWriter {
-                                    stream: stream,
-                                    handle: rt_clone.handle(),
-                                };
-
-                                if err_rb.len() > 0 {
-                                    let mut writer = match StreamWriter::try_new(&mut ipc_writer, &err_schema) {
-                                        Err(_) => return,
-                                        Ok(v) => v,
-                                    };
-
-                                    let _ = writer.write(&err_rb[0]);
-                                    let _ = writer.finish();
-                                } else {
-                                    let (schema, _, _) = rbs[0].clone().into_parts();
-                                    let schema_t: Arc<Schema>;
-
-                                    unsafe {
-                                        // FIXME: There must be a better way than this.
-                                        schema_t = mem::transmute(schema.clone());
-                                    }
-
-                                    let mut writer = match StreamWriter::try_new(&mut ipc_writer, &schema_t) {
-                                        Err(_) => return,
-                                        Ok(v) => v,
-                                    };
-
-                                    for rb in rbs {
-                                        let rb_t: RecordBatch;
-
-                                        unsafe {
-                                            // FIXME: There must be a better way than this.
-                                            rb_t = mem::transmute(rb);
-                                        }
-
-                                        let _ = writer.write(&rb_t);
-                                    }
-
-                                    let _ = writer.finish();
-                                }
-                            })();
+                            handle_proto(i, rt_clone.clone(), conn.try_clone()?, stream, payload, offset, len);
                         }
                     }
                 }
@@ -309,5 +136,201 @@ impl WorkPool {
                 let _ = handle.join();
             }
         }
+    }
+}
+
+fn handle_tcp_stream(i: usize, rt: Arc<Runtime>, stream: Arc<Mutex<TcpStream>>, tx_work: AsyncSender<WorkerCtrl>) {
+    let start = Instant::now();
+    defer!(info!("T{i}: handle_tcp_stream took {:?}", start.elapsed()));
+
+    rt.block_on(async {
+        let mut offset = 0;
+        let mut len = 0;
+        let mut accum = Vec::new();
+        let mut buf = vec![0; 1024];
+        loop {
+            match stream.lock().unwrap().read(&mut buf).await {
+                Err(_) => break,
+                Ok(n) => {
+                    if n == 0 {
+                        break;
+                    }
+
+                    let data = &buf[0..n];
+                    accum.extend_from_slice(data);
+
+                    let delim = memmem::find(&data, DELIM.as_bytes());
+                    if delim.is_some() && len < 1 {
+                        offset = delim.unwrap() + 2;
+                        let slen = &accum[1..delim.unwrap()];
+                        len = match str::from_utf8(slen) {
+                            Err(_) => 0,
+                            Ok(v) => v.parse::<usize>().unwrap_or(0),
+                        };
+                    }
+
+                    if ((len + offset) > 0) && accum.len() >= (len + offset) {
+                        break; // got all data
+                    }
+
+                    if n >= 2 && buf[n - 2] == DELIM.as_bytes()[0] && buf[n - 1] == DELIM.as_bytes()[1] {
+                        break; // end-of-stream
+                    }
+                }
+            }
+        }
+
+        tx_work
+            .send(WorkerCtrl::HandleProto {
+                stream,
+                payload: accum,
+                offset,
+                len,
+            })
+            .await
+            .unwrap();
+    });
+}
+
+fn handle_proto(
+    i: usize,
+    rt: Arc<Runtime>,
+    conn: Connection,
+    stream: Arc<Mutex<TcpStream>>,
+    payload: Vec<u8>,
+    offset: usize,
+    len: usize,
+) {
+    let start = Instant::now();
+    defer!(info!("T{i}: handle_proto took {:?}", start.elapsed()));
+
+    let line = &payload[(offset + 2)..(len + offset)];
+    let s_line = String::from_utf8_lossy(line);
+    info!("T{i}: payload={}", s_line);
+
+    let mut rbs: Vec<DuckRecordBatch> = vec![];
+    let mut err_rb = vec![];
+    let err_schema = Arc::new(Schema::new(vec![Field::new("error", DataType::Utf8, false)]));
+
+    match &payload[0] {
+        b'$' => match &payload[offset..(offset + 2)] {
+            b"x:" => match conn.execute(&s_line, params![]) {
+                Err(e) => {
+                    let mut err = String::new();
+                    write!(&mut err, "{e}").unwrap();
+                    err_rb = vec![
+                        RecordBatch::try_new(
+                            err_schema.clone(),
+                            vec![Arc::new(StringArray::from(vec![err.as_str()]))],
+                        )
+                        .unwrap(),
+                    ];
+                }
+                Ok(_) => {
+                    err_rb = vec![
+                        RecordBatch::try_new(err_schema.clone(), vec![Arc::new(StringArray::from(vec![OK]))]).unwrap(),
+                    ];
+                }
+            },
+            b"q:" => {
+                let mut stmt = vec![];
+                match conn.prepare(&s_line) {
+                    Err(e) => {
+                        let mut err = String::new();
+                        write!(&mut err, "{e}").unwrap();
+                        err_rb = vec![
+                            RecordBatch::try_new(
+                                err_schema.clone(),
+                                vec![Arc::new(StringArray::from(vec![err.as_str()]))],
+                            )
+                            .unwrap(),
+                        ];
+                    }
+                    Ok(v) => stmt = vec![v],
+                };
+
+                if stmt.len() > 0 {
+                    match stmt[0].query_arrow([]) {
+                        Err(e) => {
+                            let mut err = String::new();
+                            write!(&mut err, "{e}").unwrap();
+                            err_rb = vec![
+                                RecordBatch::try_new(
+                                    err_schema.clone(),
+                                    vec![Arc::new(StringArray::from(vec![err.as_str()]))],
+                                )
+                                .unwrap(),
+                            ];
+                        }
+                        Ok(v) => rbs = v.collect(),
+                    }
+                }
+            }
+            _ => {
+                let pfx = String::from_utf8_lossy(&payload[offset..(offset + 2)]);
+                let mut err = String::new();
+                write!(&mut err, "Unknown prefix '{pfx}'").unwrap();
+                err_rb = vec![
+                    RecordBatch::try_new(
+                        err_schema.clone(),
+                        vec![Arc::new(StringArray::from(vec![err.as_str()]))],
+                    )
+                    .unwrap(),
+                ];
+            }
+        },
+        _ => {
+            let cmd = String::from(payload[0] as char);
+            let mut err = String::new();
+            write!(&mut err, "Unknown command '{cmd}'").unwrap();
+            err_rb = vec![
+                RecordBatch::try_new(
+                    err_schema.clone(),
+                    vec![Arc::new(StringArray::from(vec![err.as_str()]))],
+                )
+                .unwrap(),
+            ];
+        }
+    }
+
+    let mut ipc_writer = IpcWriter {
+        stream: stream,
+        handle: rt.handle(),
+    };
+
+    if err_rb.len() > 0 {
+        let mut writer = match StreamWriter::try_new(&mut ipc_writer, &err_schema) {
+            Err(_) => return,
+            Ok(v) => v,
+        };
+
+        let _ = writer.write(&err_rb[0]);
+        let _ = writer.finish();
+    } else {
+        let (schema, _, _) = rbs[0].clone().into_parts();
+        let schema_t: Arc<Schema>;
+
+        unsafe {
+            // FIXME: There must be a better way than this.
+            schema_t = mem::transmute(schema.clone());
+        }
+
+        let mut writer = match StreamWriter::try_new(&mut ipc_writer, &schema_t) {
+            Err(_) => return,
+            Ok(v) => v,
+        };
+
+        for rb in rbs {
+            let rb_t: RecordBatch;
+
+            unsafe {
+                // FIXME: There must be a better way than this.
+                rb_t = mem::transmute(rb);
+            }
+
+            let _ = writer.write(&rb_t);
+        }
+
+        let _ = writer.finish();
     }
 }

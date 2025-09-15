@@ -8,11 +8,7 @@ use arrow_schema::{DataType, Field, Schema};
 use async_channel::Receiver as AsyncReceiver;
 use clap::Parser;
 use ctrlc;
-use duckdb::{
-    Connection,
-    arrow::{record_batch::RecordBatch as DuckRecordBatch, util::pretty::print_batches},
-    params,
-};
+use duckdb::{Connection, arrow::record_batch::RecordBatch as DuckRecordBatch, params};
 use hedge_rs::*;
 use ipc_writer::IpcWriter;
 use log::*;
@@ -264,37 +260,55 @@ fn main() -> Result<()> {
                             let start = Instant::now();
                             defer!(info!("T{i}: WorkerCtrl::HandleProto took {:?}", start.elapsed()));
 
-                            let line = &payload[offset..(len + offset)];
+                            let line = &payload[(offset + 2)..(len + offset)];
                             let s_line = String::from_utf8_lossy(line);
                             info!("T{i}: payload={}", s_line);
 
-                            let mut rb = vec![];
-                            let schema = Arc::new(Schema::new(vec![Field::new("error", DataType::Utf8, false)]));
+                            let mut rbs: Vec<DuckRecordBatch> = vec![];
+                            let mut err_rb = vec![];
+                            let err_schema = Arc::new(Schema::new(vec![Field::new("error", DataType::Utf8, false)]));
 
                             match &payload[0] {
-                                b'$' => match conn.execute(&s_line, params![]) {
-                                    Err(e) => {
-                                        let mut err = String::new();
-                                        write!(&mut err, "-{e}{DELIM}").unwrap();
-                                        rb = vec![
-                                            RecordBatch::try_new(
-                                                schema.clone(),
-                                                vec![Arc::new(StringArray::from(vec![err.as_str()]))],
-                                            )
-                                            .unwrap(),
-                                        ];
+                                b'$' => match &payload[offset..(offset + 2)] {
+                                    b"x:" => match conn.execute(&s_line, params![]) {
+                                        Err(e) => {
+                                            let mut err = String::new();
+                                            write!(&mut err, "-{e}{DELIM}").unwrap();
+                                            err_rb = vec![
+                                                RecordBatch::try_new(
+                                                    err_schema.clone(),
+                                                    vec![Arc::new(StringArray::from(vec![err.as_str()]))],
+                                                )
+                                                .unwrap(),
+                                            ];
+                                        }
+                                        Ok(_) => {
+                                            err_rb = vec![
+                                                RecordBatch::try_new(
+                                                    err_schema.clone(),
+                                                    vec![Arc::new(StringArray::from(vec![OK]))],
+                                                )
+                                                .unwrap(),
+                                            ];
+                                        }
+                                    },
+                                    b"q:" => {
+                                        let mut stmt = conn.prepare(&s_line).unwrap();
+                                        rbs = stmt.query_arrow([]).unwrap().collect();
                                     }
-                                    Ok(_) => {
-                                        rb = vec![
-                                            RecordBatch::try_new(
-                                                schema.clone(),
-                                                vec![Arc::new(StringArray::from(vec![OK]))],
-                                            )
-                                            .unwrap(),
-                                        ];
-                                    }
+                                    _ => {}
                                 },
-                                _ => info!("T{i}: unknown payload"),
+                                _ => {
+                                    let mut err = String::new();
+                                    write!(&mut err, "-ERR Unknown command{DELIM}").unwrap();
+                                    err_rb = vec![
+                                        RecordBatch::try_new(
+                                            err_schema.clone(),
+                                            vec![Arc::new(StringArray::from(vec![err.as_str()]))],
+                                        )
+                                        .unwrap(),
+                                    ];
+                                }
                             }
 
                             let mut ipc_writer = IpcWriter {
@@ -302,13 +316,37 @@ fn main() -> Result<()> {
                                 handle: rt_clone.handle(),
                             };
 
-                            let mut writer = match StreamWriter::try_new(&mut ipc_writer, &schema) {
-                                Err(_) => return,
-                                Ok(v) => v,
-                            };
+                            if err_rb.len() > 0 {
+                                let mut writer = match StreamWriter::try_new(&mut ipc_writer, &err_schema) {
+                                    Err(_) => return,
+                                    Ok(v) => v,
+                                };
 
-                            let _ = writer.write(&rb[0]);
-                            let _ = writer.finish();
+                                let _ = writer.write(&err_rb[0]);
+                                let _ = writer.finish();
+                            } else {
+                                let (s, _, _) = rbs[0].clone().into_parts();
+                                let schema: Arc<Schema>;
+                                unsafe {
+                                    schema = std::mem::transmute(s.clone());
+                                }
+
+                                let mut writer = match StreamWriter::try_new(&mut ipc_writer, &schema) {
+                                    Err(_) => return,
+                                    Ok(v) => v,
+                                };
+
+                                for rb in rbs {
+                                    let rb_t: RecordBatch;
+                                    unsafe {
+                                        rb_t = std::mem::transmute(rb);
+                                    }
+
+                                    let _ = writer.write(&rb_t);
+                                }
+
+                                let _ = writer.finish();
+                            }
                         })();
                     }
                 }

@@ -67,4 +67,4 @@ $ cargo build
 $ RUST_LOG=info ./target/debug/luna
 ```
 
-See [lunactl](https://github.com/flowerinthenight/lunactl/) for the cmdline.
+See [lunactl](https://github.com/flowerinthenight/lunactl/) for a test cmdline in Go.

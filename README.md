@@ -161,3 +161,4 @@ $ lunactl -p "SELECT count(Index) FROM customers;"
 - [ ] Release pipeline
 - [ ] Proper testing codes
 - [ ] Additional testdata for object storage, local, and different file/db types
+- [ ] Distributed/cluster support

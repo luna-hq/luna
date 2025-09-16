@@ -15,7 +15,7 @@
 
 A `luna` process maintains a single, in-memory database that can be configured through its TCP-based API which is exposed, by default, at port `7688` (can be changed through the `--api-host-port` flag). Requests use a variant of Redis' [RESP](https://redis.io/docs/latest/develop/reference/protocol-spec/) spec, specifically, the [Bulk strings](https://redis.io/docs/latest/develop/reference/protocol-spec/#bulk-strings) representation. Responses, on the other hand, consist of a stream of `RecordBatch` messages (schema included), utilizing Arrow's [IPC format](https://arrow.apache.org/docs/format/Columnar.html#format-ipc). This also applies to error messages.
 
-### Request
+#### Request
 
 Requests are encoded as follows:
 
@@ -53,7 +53,7 @@ $18\n\nq:DESCRIBE tmpcur;\n\n
 $39\n\nq:SELECT uuid, date, payer FROM tmpcur;\n\n
 ```
 
-### Response
+#### Response
 
 To be added.
 

@@ -71,6 +71,13 @@ Error messages will have a single field/column called `error`, with a single row
 |-------|
 | <pre>Catalog Error: Table with name customers does not exist!<br>Did you mean \"sqlite_master\"? LINE 1: SELECT COUNT(index) FROM customers;</pre> |
 
+Success messages use the same format with `OK` as the value.
+
+| error |
+|-------|
+| <pre>OK</pre> |
+
+
 ## Build
 
 The following guide uses [`lunactl`](https://github.com/flowerinthenight/lunactl/), a test cmdline for Luna. A [sample CSV](./testdata/) (copied from [sample-csv-files](https://github.com/datablist/sample-csv-files)) is also included to test filesystem-based data imports.

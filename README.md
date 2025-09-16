@@ -78,7 +78,7 @@ $ cargo build
 # Run on default port 7688:
 $ RUST_LOG=info ./target/debug/luna
 
-# Install lunactl:
+# Install lunactl for testing:
 $ brew install flowerinthenight/tap/lunactl
 
 # Import local CSV to luna (newline is for readability only):

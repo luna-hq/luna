@@ -13,7 +13,7 @@
 
 ## API specs
 
-A `luna` process maintains a single, in-memory database that can be configured through its TCP-based API which is exposed, by default, at port `7688` (can be changed through the `--api-host-port` flag). Requests use a variant of Redis' [RESP](https://redis.io/docs/latest/develop/reference/protocol-spec/) spec, specifically, the [Bulk strings](https://redis.io/docs/latest/develop/reference/protocol-spec/#bulk-strings) representation. Responses, on the other hand, consist of a stream of `RecordBatch` messages, utilizing Arrow's [IPC format](https://arrow.apache.org/docs/format/Columnar.html#format-ipc). This also applies to error messages.
+A Luna process maintains a single, in-memory database that can be configured through its TCP-based API which is exposed, by default, at port `7688` (can be changed through the `--api-host-port` flag). Requests use a variant of Redis' [RESP](https://redis.io/docs/latest/develop/reference/protocol-spec/) spec, specifically, the [Bulk strings](https://redis.io/docs/latest/develop/reference/protocol-spec/#bulk-strings) representation. Responses, on the other hand, consist of a stream of `RecordBatch` messages, utilizing Arrow's [IPC format](https://arrow.apache.org/docs/format/Columnar.html#format-ipc). This also applies to error messages.
 
 #### [Request]
 
@@ -69,7 +69,7 @@ To be added.
 
 ## Build
 
-The following guide uses [lunactl](https://github.com/flowerinthenight/lunactl/), a test cmdline for luna. A [sample CSV](./testdata/) is also included to test filesystem-based data imports.
+The following guide uses [lunactl](https://github.com/flowerinthenight/lunactl/), a test cmdline for Luna. A [sample CSV](./testdata/) is also included to test filesystem-based data imports.
 
 ```sh
 # Build binary:

@@ -88,7 +88,10 @@ $ lunactl -type 'x:' -p "CREATE TABLE customers AS FROM read_csv(
 # Describe our newly-created table:
 $ lunactl -p "DESCRIBE customers;"
 
-# Query some data:
+# Query some data (#1):
 $ lunactl -p "SELECT CustomerId, Email FROM customers LIMIT 5;"
+
+# Query some data (#2):
+$ lunactl -p "SELECT count(index) FROM customers;" 
 ```
 

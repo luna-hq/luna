@@ -37,6 +37,12 @@ For example, to load CSV files from GCS, we will have the following commands:
 ```sql
 -- Setup credentials for GCS access:
 $79\n\nx:CREATE OR REPLACE SECRET (TYPE gcs, KEY_ID 'some-key', SECRET 'some-secret');\n\n
+
+-- Then import some CSV files to a table:
+$138\n\nx:CREATE TABLE tmpcur AS FROM read_csv('gs://bucket/987368816909_2025-08*.csv',
+header = true,
+union_by_name = true,
+files_to_sniff = -1);\n\n
 ```
 
 ## Build

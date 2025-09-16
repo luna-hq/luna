@@ -67,7 +67,7 @@ $39\n\nq:SELECT uuid, date, payer FROM tmpcur;\n\n
 
 To be added.
 
-## Build and run
+## Build
 
 ```sh
 # Build binary:

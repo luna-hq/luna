@@ -32,6 +32,13 @@ The `<data>` section is further broken down as follows:
 - First 2 bytes - prefix as command type. It can either be `x:` for execute, and `q:` for query statements.
 - Remaining bytes - the actual command, mostly in SQL form.
 
+For example, to load CSV files from GCS, we will have the following commands:
+
+```sql
+-- Setup credentials for GCS access:
+$79\n\nx:CREATE OR REPLACE SECRET (TYPE gcs, KEY_ID 'some-key', SECRET 'some-secret');\n\n
+```
+
 ## Build
 
 ```sh

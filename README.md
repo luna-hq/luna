@@ -90,6 +90,21 @@ Otherwise, the result will depend on the query result itself.
 
 ```
 SELECT CustomerId, Email FROM customers;
+
+schema:
+  fields: 2
+    - CustomerId: type=utf8, nullable
+    - Email: type=utf8, nullable
+
+record:
+  schema:
+  fields: 2
+    - CustomerId: type=utf8, nullable
+    - Email: type=utf8, nullable
+  rows: 1000
+  col[0][CustomerId]: ["dE014d010c7ab0c" "2B54172c8b65eC3" "d794Dd48988d2ac" ... ]
+  col[1][Email]: ["marieyates@gomez-spencer.info" "alexandra86@mccoy.com" "justincurtis@pierce.org" ...]
+
 +-----------------+-------------------------------+
 | CustomerId      | Email                         |
 +-----------------+-------------------------------+

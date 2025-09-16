@@ -86,6 +86,20 @@ Success messages use the same format with `OK` as the value.
 +-------+
 ```
 
+Otherwise, the result will depend on the query result itself.
+
+```
+SELECT CustomerId, Email FROM customers;
++-----------------+-------------------------------+
+| CustomerId      | Email                         |
++-----------------+-------------------------------+
+| dE014d010c7ab0c | marieyates@gomez-spencer.info |
+| 2B54172c8b65eC3 | alexandra86@mccoy.com         |
+| d794Dd48988d2ac | justincurtis@pierce.org       |
+| ...             | ...                           |
++-----------------+-------------------------------+
+```
+
 ## Build
 
 The following guide uses [`lunactl`](https://github.com/flowerinthenight/lunactl/), a test cmdline for Luna. A [sample CSV](./testdata/) (copied from [sample-csv-files](https://github.com/datablist/sample-csv-files)) is also included to test filesystem-based data imports.

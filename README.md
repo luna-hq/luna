@@ -37,14 +37,21 @@ The `<data>` section is further broken down as follows:
 For example, to load CSV files from cloud storage, we will have the following requests:
 
 ```sql
--- Setup credentials for S3 access:
-$79\n\nx:CREATE OR REPLACE SECRET (TYPE s3, PROVIDER config, KEY_ID 'some-key', SECRET 'some-secret', REGION 'us-east-1');\n\n
-
--- or GCS access:
+-- Setup credentials for GCS access:
 $79\n\nx:CREATE OR REPLACE SECRET (TYPE gcs, KEY_ID 'some-key', SECRET 'some-secret');\n\n
 
--- Then import some CSV files to a table:
+-- or S3 access:
+$116\n\nx:CREATE OR REPLACE SECRET (
+TYPE s3, PROVIDER config, KEY_ID 'some-key', SECRET 'some-secret', REGION 'us-east-1');\n\n
+
+-- Then import some CSV files to a table (GCS):
 $138\n\nx:CREATE TABLE tmpcur AS FROM read_csv('gs://bucket/987368816909_2025-08*.csv',
+header = true,
+union_by_name = true,
+files_to_sniff = -1);\n\n
+
+-- or from S3:
+$138\n\nx:CREATE TABLE tmpcur AS FROM read_csv('s3://bucket/987368816909_2025-08*.csv',
 header = true,
 union_by_name = true,
 files_to_sniff = -1);\n\n

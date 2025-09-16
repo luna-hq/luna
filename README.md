@@ -9,7 +9,7 @@
 
 > [!NOTE]
 > - Luna's development is supported (and funded) by [Alphaus, Inc.](https://www.alphaus.cloud/en/) as it's also being used internally.
-> - Luna is tested (and expected) to run on a single machine, although a private fork is being developed to support distributed clusters in the future.
+> - At the moment, Luna is tested (and expected) to run on a single machine, although support for distributed clusters is part of the goal.
 
 ## API specs
 

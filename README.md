@@ -78,10 +78,13 @@ Error messages will have a single field/column called `error`, with a single row
 
 Success messages use the same format with `OK` as the value.
 
+```
++-------+
 | error |
-|-------|
-| <pre>OK</pre> |
-
++-------+
+| OK    |
++-------+
+```
 
 ## Build
 

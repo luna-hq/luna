@@ -73,7 +73,7 @@ To be added.
 # Build binary:
 $ cargo build
 
-# Sample run:
+# Run on default port 7688:
 $ RUST_LOG=info ./target/debug/luna
 ```
 

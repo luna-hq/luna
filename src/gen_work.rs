@@ -258,7 +258,15 @@ fn handle_proto(
                                 vec![Arc::new(StringArray::from(vec![err.as_str()]))],
                             )?];
                         }
-                        Ok(v) => rbs = v.collect(),
+                        Ok(v) => {
+                            rbs = v.collect();
+                            if rbs.len() == 0 {
+                                err_rb = vec![RecordBatch::try_new(
+                                    err_schema.clone(),
+                                    vec![Arc::new(StringArray::from(vec!["EMPTY"]))],
+                                )?];
+                            }
+                        }
                     }
                 }
             }

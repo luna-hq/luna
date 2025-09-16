@@ -69,6 +69,8 @@ To be added.
 
 ## Build
 
+The following guide uses [lunactl](https://github.com/flowerinthenight/lunactl/), a test cmdline for luna.
+
 ```sh
 # Build binary:
 $ cargo build
@@ -77,4 +79,3 @@ $ cargo build
 $ RUST_LOG=info ./target/debug/luna
 ```
 
-See [lunactl](https://github.com/flowerinthenight/lunactl/) for a test cmdline in Go.

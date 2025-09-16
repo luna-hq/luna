@@ -159,4 +159,5 @@ $ lunactl -p "SELECT count(Index) FROM customers;"
 - [ ] Dedicated documentation site
 - [ ] Deployment guides and samples
 - [ ] Release pipeline
+- [ ] Proper testing codes
 - [ ] Additional testdata for object storage, local, and different file/db types

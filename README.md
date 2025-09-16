@@ -34,10 +34,13 @@ The `<data>` section is further broken down as follows:
 - First 2 bytes - prefix as command type. It can either be `x:` for execute, or `q:` for query statements.
 - Remaining bytes - the actual command, mostly in SQL form.
 
-For example, to load CSV files from GCS, we will have the following requests:
+For example, to load CSV files from cloud storage, we will have the following requests:
 
 ```sql
--- Setup credentials for GCS access:
+-- Setup credentials for S3 access:
+$79\n\nx:CREATE OR REPLACE SECRET (TYPE s3, PROVIDER config, KEY_ID 'some-key', SECRET 'some-secret', REGION 'us-east-1');\n\n
+
+-- or GCS access:
 $79\n\nx:CREATE OR REPLACE SECRET (TYPE gcs, KEY_ID 'some-key', SECRET 'some-secret');\n\n
 
 -- Then import some CSV files to a table:

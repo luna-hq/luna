@@ -69,7 +69,7 @@ To be added.
 
 ## Build
 
-The following guide uses [lunactl](https://github.com/flowerinthenight/lunactl/), a test cmdline for Luna. A [sample CSV](./testdata/) is also included to test filesystem-based data imports.
+The following guide uses [lunactl](https://github.com/flowerinthenight/lunactl/), a test cmdline for Luna. A [sample CSV](./testdata/) (copied from [sample-csv-files](https://github.com/datablist/sample-csv-files)) is also included to test filesystem-based data imports.
 
 ```sh
 # Build binary:

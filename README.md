@@ -77,5 +77,11 @@ $ cargo build
 
 # Run on default port 7688:
 $ RUST_LOG=info ./target/debug/luna
+
+# Install lunactl:
+$ brew install flowerinthenight/tap/lunactl
+
+# Import local CSV to luna:
+$ lunactl -type 'x:' -p "CREATE TABLE customers AS FROM read_csv('/path/to/luna/testdata/customers-1000.csv', header = true, files_to_sniff = -1);"
 ```
 

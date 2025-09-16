@@ -156,6 +156,7 @@ $ lunactl -p "SELECT count(Index) FROM customers;"
 ## Todo
 
 - [ ] Client SDK (and samples) for mainstream programming languages
+- [ ] Authentication
 - [ ] Dedicated documentation site
 - [ ] Deployment guides and samples
 - [ ] Release pipeline

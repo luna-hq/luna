@@ -150,6 +150,6 @@ $ lunactl -p "DESCRIBE customers;"
 $ lunactl -p "SELECT CustomerId, Email FROM customers LIMIT 5;"
 
 # Query some data (#2):
-$ lunactl -p "SELECT count(index) FROM customers;" 
+$ lunactl -p "SELECT count(Index) FROM customers;" 
 ```
 

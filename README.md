@@ -153,3 +153,10 @@ $ lunactl -p "SELECT CustomerId, Email FROM customers LIMIT 5;"
 $ lunactl -p "SELECT count(Index) FROM customers;" 
 ```
 
+## Todo
+
+- [ ] Client SDK (and samples) for mainstream programming languages
+- [ ] Dedicated documentation site
+- [ ] Deployment guides and samples
+- [ ] Release pipeline
+- [ ] Additional testdata for object storage, local, and different file/db types

@@ -68,6 +68,17 @@ $39\n\nq:SELECT uuid, date, payer FROM tmpcur;\n\n
 Error messages will have a single field/column called `error`, with a single row value containing the error itself.
 
 ```
+schema:  
+  fields: 1                                                                                                                                                                                                                
+    - error: type=utf8                                                                                                                                                                                                     
+
+record:             
+  schema:           
+  fields: 1
+    - error: type=utf8
+  rows: 1
+  col[0][error]: ["Catalog Error: Table with name customers does not exist!..."]
+
 +-----------------------------------------------------------------------------+
 | error                                                                       |
 +-----------------------------------------------------------------------------+

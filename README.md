@@ -11,9 +11,61 @@
 > - Luna's development is supported (and funded) by [Alphaus, Inc.](https://www.alphaus.cloud/en/) as it's also being used internally.
 > - Luna is tested (and expected) to run on a single machine, although a private fork is being developed to support distributed clusters in the future.
 
-## API
+## API Specs
 
-A `luna` process maintains a single, in-memory database that can be configured through its TCP-based API exposed, by default, at port `7688` (can be changed through the `--api-host-port` flag).
+A `luna` process maintains a single, in-memory database that can be configured through its TCP-based API which is exposed, by default, at port `7688` (can be changed through the `--api-host-port` flag). Requests use a variant of Redis' [RESP](https://redis.io/docs/latest/develop/reference/protocol-spec/) spec, specifically, the [Bulk strings](https://redis.io/docs/latest/develop/reference/protocol-spec/#bulk-strings) representation. Responses, on the other hand, consist of a stream of `RecordBatch` messages, utilizing Arrow's [IPC format](https://arrow.apache.org/docs/format/Columnar.html#format-ipc). This also applies to error messages.
+
+#### [Request]
+
+Requests are encoded as follows:
+
+```
+$<length>\r\n<data>\r\n
+```
+
+- The dollar sign ($) as the first byte.
+- One or more decimal digits (0..9) as the string's length, in bytes, as an unsigned, base-10 value.
+- The CRLF terminator.
+- The data.
+- A final CRLF.
+
+The `<data>` section is further broken down as follows:
+
+- First 2 bytes - prefix as command type. It can either be `x:` for execute, or `q:` for query statements.
+- Remaining bytes - the actual command, mostly in SQL form.
+
+For example, to load CSV files from cloud storage, we will have the following requests:
+
+```sql
+-- Setup credentials for GCS access:
+$79\n\nx:CREATE OR REPLACE SECRET (TYPE gcs, KEY_ID 'some-key', SECRET 'some-secret');\n\n
+
+-- or S3 access:
+$116\n\nx:CREATE OR REPLACE SECRET (
+TYPE s3, PROVIDER config, KEY_ID 'some-key', SECRET 'some-secret', REGION 'us-east-1');\n\n
+
+-- Then import some CSV files to a table (GCS):
+$138\n\nx:CREATE TABLE tmpcur AS FROM read_csv('gs://bucket/987368816909_2025-08*.csv',
+header = true,
+union_by_name = true,
+files_to_sniff = -1);\n\n
+
+-- or from S3:
+$138\n\nx:CREATE TABLE tmpcur AS FROM read_csv('s3://bucket/987368816909_2025-08*.csv',
+header = true,
+union_by_name = true,
+files_to_sniff = -1);\n\n
+
+-- Describe the created table:
+$18\n\nq:DESCRIBE tmpcur;\n\n
+
+-- Query data:
+$39\n\nq:SELECT uuid, date, payer FROM tmpcur;\n\n
+```
+
+#### [Response]
+
+To be added.
 
 ## Build
 
@@ -25,4 +77,4 @@ $ cargo build
 $ RUST_LOG=info ./target/debug/luna
 ```
 
-See [lunactl](https://github.com/flowerinthenight/lunactl/) for the cmdline.
+See [lunactl](https://github.com/flowerinthenight/lunactl/) for a test cmdline in Go.

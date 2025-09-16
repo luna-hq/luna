@@ -67,9 +67,14 @@ $39\n\nq:SELECT uuid, date, payer FROM tmpcur;\n\n
 
 Error messages will have a single field/column called `error`, with a single row value containing the error itself.
 
-| error |
-|-------|
-| <pre>Catalog Error: Table with name customers does not exist!<br>Did you mean \"sqlite_master\"? LINE 1: SELECT COUNT(index) FROM customers;</pre> |
+```
++-----------------------------------------------------------------------------+
+| error                                                                       |
++-----------------------------------------------------------------------------+
+| Catalog Error: Table with name customers does not exist!                    |
+| Did you mean \"sqlite_master\"? LINE 1: SELECT COUNT(index) FROM customers; |
++-----------------------------------------------------------------------------+
+```
 
 Success messages use the same format with `OK` as the value.
 

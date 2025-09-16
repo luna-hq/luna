@@ -65,7 +65,11 @@ $39\n\nq:SELECT uuid, date, payer FROM tmpcur;\n\n
 
 #### [Response]
 
-To be added.
+Error messages will have a single field/column called `error`, with a single row value containing the error itself.
+
+| error |
+|-------|
+| <pre>Catalog Error: Table with name customers does not exist!<br>Did you mean \"sqlite_master\"? LINE 1: SELECT COUNT(index) FROM customers;</pre> |
 
 ## Build
 

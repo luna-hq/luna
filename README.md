@@ -27,6 +27,11 @@ $<length>\r\n<data>\r\n
 - The data.
 - A final CRLF.
 
+The `<data>` section is further broken down as follows:
+
+- First 2 bytes - prefix as command type. It can either be `x:` for execute statements, and `q:` for query statements
+- Remaining bytes - the actual command, mostly in SQL form.
+
 ## Build
 
 ```sh

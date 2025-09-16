@@ -115,7 +115,9 @@ impl WorkPool {
                             payload,
                             offset,
                             len,
-                        } => handle_proto(i, rt_clone.clone(), conn.try_clone()?, stream, payload, offset, len)?,
+                        } => {
+                            handle_proto(i, rt_clone.clone(), conn.try_clone()?, stream, payload, offset, len)?;
+                        }
                     }
                 }
             });

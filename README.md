@@ -43,6 +43,12 @@ $138\n\nx:CREATE TABLE tmpcur AS FROM read_csv('gs://bucket/987368816909_2025-08
 header = true,
 union_by_name = true,
 files_to_sniff = -1);\n\n
+
+-- Describe the created table:
+$18\n\nq:DESCRIBE tmpcur;\n\n
+
+-- Query data:
+$39\n\nq:SELECT uuid, date, payer FROM tmpcur;\n\n
 ```
 
 ## Build

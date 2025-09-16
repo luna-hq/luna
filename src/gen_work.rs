@@ -211,8 +211,8 @@ fn handle_proto(
     info!("T{i}: payload={}", s_line);
 
     let mut rbs: Vec<DuckRecordBatch> = vec![];
-    let mut err_rb = vec![];
     let err_schema = Arc::new(Schema::new(vec![Field::new("error", DataType::Utf8, false)]));
+    let mut err_rb = vec![];
 
     match &payload[0] {
         b'$' => match &payload[offset..(offset + 2)] {

@@ -65,26 +65,29 @@ $39\n\nq:SELECT uuid, date, payer FROM tmpcur;\n\n
 
 #### [Response]
 
-Error messages will have a single field/column called `error`, with a single row value containing the error itself.
+Error messages will have two fields/columns called `input`, and `error`, with row values containing the input and the resulting error.
 
 ```
 schema:
-  fields: 1
+  fields: 2
+    - input: type=utf8
     - error: type=utf8
 
 record:
   schema:
-  fields: 1
+  fields: 2
+    - input: type=utf8
     - error: type=utf8
   rows: 1
-  col[0][error]: ["Catalog Error: Table with name customers does not exist!..."]
+  col[0][input]: ["DESCRIBE me;"]
+  col[1][error]: ["Catalog Error: Table with name me does not exist!..."]
 
-+-----------------------------------------------------------------------------+
-| error                                                                       |
-+-----------------------------------------------------------------------------+
-| Catalog Error: Table with name customers does not exist!                    |
-| Did you mean \"sqlite_master\"? LINE 1: SELECT COUNT(index) FROM customers; |
-+-----------------------------------------------------------------------------+
++--------------+--------------------------------------------------------+
+| input        | error                                                  |
++--------------+--------------------------------------------------------+
+| DESCRIBE me; | Catalog Error: Table with name me does not exist!      |
+|              | Did you mean \"pg_namespace\"?\n\nLINE 1: describe me; |
++--------------+--------------------------------------------------------+
 ```
 
 Success messages use the same format with `OK` as the value.

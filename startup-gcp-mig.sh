@@ -11,7 +11,7 @@ chown root:root /usr/local/bin/luna
 
 cat >/usr/lib/systemd/system/luna.service <<EOL
 [Unit]
-Description=Luna - in-memory SQL server
+Description=Luna in-memory DuckDB SQL server
 
 [Service]
 Type=simple

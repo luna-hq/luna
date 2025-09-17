@@ -40,8 +40,9 @@ struct Args {
     #[arg(long, long, default_value = "0.0.0.0:8080")]
     node_id: String,
 
-    /// Optional, Spanner database (for hedge-rs) (fmt: projects/p/instances/i/databases/db)
-    #[arg(long, long, default_value = "?")]
+    /// Optional, Spanner database (for hedge-rs)
+    /// Format: "projects/{p}/instances/{i}/databases/{db}"
+    #[arg(long, long, default_value = "?", verbatim_doc_comment)]
     hedge_db: String,
 
     /// Optional, Spanner lock table (for hedge-rs)

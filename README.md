@@ -158,8 +158,8 @@ $ lunactl -p "SELECT count(Index) FROM customers;"
 A sample cloud-init [startup script](./startup-gcp-mig.sh) is provided for spinning up a [Managed Instance Group](https://cloud.google.com/compute/docs/instance-groups#managed_instance_groups) with Luna running as a systemd service.
 
 ```bash
-# Create a launch template. The provided --service-account
-# will provide access to Spanner.
+# Create a launch template. Update --service-account with
+# your actual service account.
 $ gcloud compute instance-templates create luna-tmpl \
   --machine-type e2-micro \
   --service-account=name@project.iam.gserviceaccount.com \

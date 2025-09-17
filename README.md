@@ -177,13 +177,43 @@ $ gcloud compute instance-groups managed create luna-mig \
 # to tail the VM logs (multiple).
 $ brew install flowerinthenight/tap/g-ssh-cmd
 
-# Assuming your 'gcloud' is configured properly:
+# Assuming your 'gcloud' cmdline is configured properly:
 $ g-ssh-cmd mig luna-mig 'journalctl -f'
 ```
 
 ## Runing on an AWS ASG
 
-To be added.
+A sample cloud-init [startup script](./startup-aws-asg.sh) is provided for spinning up an [Auto Scaling Group](https://docs.aws.amazon.com/autoscaling/ec2/userguide/auto-scaling-groups.html) with the ClockBound daemon already setup and running. You need to update the `ExecStart` section first with a working PostgreSQL connection value. Note that this is NOT recommended though. You should use something like IAM Role + Secrets Manager, for instance.
+
+```sh
+# Create a launch template. ImageId here is Amazon Linux, default VPC.
+# (Added newlines for readability. Might not run when copied as is.)
+$ aws ec2 create-launch-template \
+  --launch-template-name luna-lt \
+  --version-description version1 \
+  --launch-template-data '
+  {
+    "UserData":"'"$(cat startup-aws-asg.sh | base64 -w 0)"'",
+    "ImageId":"ami-0fb04413c9de69305",
+    "InstanceType":"t2.micro",
+  }'
+
+# Create the single-zone ASG; update {target-zone} with actual value:
+$ aws autoscaling create-auto-scaling-group \
+  --auto-scaling-group-name luna-asg \
+  --launch-template LaunchTemplateName=luna-lt,Version='1' \
+  --min-size 1 \
+  --max-size 1 \
+  --tags Key=Name,Value=luna-asg \
+  --availability-zones {target-zone}
+
+# Let's use 'https://github.com/flowerinthenight/g-ssh-cmd'
+# to tail the VM logs (multiple).
+$ brew install flowerinthenight/tap/g-ssh-cmd
+
+# Assuming your 'aws' cmdline is configured properly:
+$ g-ssh-cmd asg luna-asg 'journalctl -f'
+```
 
 ## Todo
 

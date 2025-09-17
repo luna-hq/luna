@@ -93,11 +93,11 @@ record:
 Success messages use the same format with `OK` as the value.
 
 ```
-+-------+
-| error |
-+-------+
-| OK    |
-+-------+
++----------------------------------------------------------+-------+
+| input                                                    | error |
++----------------------------------------------------------+-------+
+| CREATE TABLE customers AS FROM read_csv('s3://bucket/... | OK    |
++----------------------------------------------------------+-------+
 ```
 
 Otherwise, the result will depend on the query result itself.

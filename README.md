@@ -183,8 +183,7 @@ $ g-ssh-cmd mig luna-mig 'journalctl -f' --project {project}
 A sample cloud-init [startup script](./startup-aws-asg.sh) is provided for spinning up an [Auto Scaling Group](https://docs.aws.amazon.com/autoscaling/ec2/userguide/auto-scaling-groups.html) with Luna running as a systemd service.
 
 ```sh
-# Create a launch template. ImageId here is Ubuntu 24.04 LTS (since
-# it has newer GLIB version than Amazon Linux), default VPC.
+# Create a launch template. ImageId here is Amazon Linux, default VPC.
 # (Added newlines for readability. Might not run when copied as is.)
 # Replace 'keyName' with your own keypair.
 $ aws ec2 create-launch-template \
@@ -193,7 +192,7 @@ $ aws ec2 create-launch-template \
   --launch-template-data '
   {
     "UserData":"'"$(cat startup-aws-asg.sh | base64 -w 0)"'",
-    "ImageId":"ami-0a71a0b9c988d5e5e",
+    "ImageId":"ami-08f0737412a47a5ed",
     "InstanceType":"t2.micro",
     "KeyName":"keyName"
   }'

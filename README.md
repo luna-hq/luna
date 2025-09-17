@@ -171,10 +171,10 @@ $ gcloud compute instance-groups managed create luna-mig \
   --template luna-tmpl --size 1 --region {target-region}
 
 # Let's use 'https://github.com/flowerinthenight/g-ssh-cmd'
-# to tail the VM logs (multiple).
+# to tail the VM logs. This is optional.
 $ brew install flowerinthenight/tap/g-ssh-cmd
 
-# Assuming your 'gcloud' cmdline is configured properly:
+# Assuming your 'gcloud' cmdline is configured properly.
 $ g-ssh-cmd mig luna-mig 'journalctl -f' --project {project}
 ```
 
@@ -197,7 +197,7 @@ $ aws ec2 create-launch-template \
     "KeyName":"keyName"
   }'
 
-# Create the single-zone ASG; update {target-zone} with actual value:
+# Create the single-zone ASG; update {target-zone} with actual value.
 $ aws autoscaling create-auto-scaling-group \
   --auto-scaling-group-name luna-asg \
   --launch-template LaunchTemplateName=luna-lt,Version='1' \
@@ -206,11 +206,11 @@ $ aws autoscaling create-auto-scaling-group \
   --tags Key=Name,Value=luna-asg \
   --availability-zones {target-zone}
 
-# Let's use 'https://github.com/flowerinthenight/g-ssh-cmd'
-# to tail the VM logs (multiple).
+# Let's use [https://github.com/flowerinthenight/g-ssh-cmd]
+# to tail the VM logs. This is optional.
 $ brew install flowerinthenight/tap/g-ssh-cmd
 
-# Assuming your 'aws' cmdline is configured properly:
+# Assuming your 'aws' cmdline is configured properly.
 $ g-ssh-cmd asg luna-asg 'journalctl -f' --key keyName.pem
 ```
 

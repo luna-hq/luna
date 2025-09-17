@@ -1,6 +1,6 @@
 [package]
 name = "luna"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 authors = ["flowerinthenight <root@flowerinthenight.com>"]
 description = "In-memory SQL layer to object storage data."

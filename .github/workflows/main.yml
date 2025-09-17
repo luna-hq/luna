@@ -36,6 +36,6 @@ jobs:
       run: |
         rustup target add x86_64-unknown-linux-gnu
         cargo build --release --target=x86_64-unknown-linux-gnu
-        cp -v target/x86_64-unknown-linux-gnu/release/example ./luna
+        cp -v target/x86_64-unknown-linux-gnu/release/luna ./luna
         tar czvf luna-${GITHUB_REF_NAME}-x86_64-linux.tar.gz luna
         gh release create ${GITHUB_REF_NAME} ./*.tar.gz --generate-notes

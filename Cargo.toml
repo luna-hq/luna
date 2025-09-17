@@ -1,6 +1,6 @@
 [package]
 name = "luna"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2024"
 authors = ["flowerinthenight <root@flowerinthenight.com>"]
 description = "In-memory OLAP SQL server for object storage data."

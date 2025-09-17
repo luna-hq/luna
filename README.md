@@ -159,12 +159,9 @@ A sample cloud-init [startup script](./startup-gcp-mig.sh) is provided for spinn
 
 ```bash
 # Create a launch template. Update --service-account with
-# your actual service account. Uses Ubuntu since it has newer
-# GLIB version than Debian. You can update the --machine-type.
+# your own service account. You can update the --machine-type.
 $ gcloud compute instance-templates create luna-tmpl \
   --machine-type e2-micro \
-  --image-family ubuntu-2404-lts-amd64 \
-  --image-project ubuntu-os-cloud \
   --service-account=name@project.iam.gserviceaccount.com \
   --scopes=cloud-platform \
   --metadata=startup-script=''"$(cat startup-gcp-mig.sh)"''
@@ -178,7 +175,7 @@ $ gcloud compute instance-groups managed create luna-mig \
 $ brew install flowerinthenight/tap/g-ssh-cmd
 
 # Assuming your 'gcloud' cmdline is configured properly:
-$ g-ssh-cmd mig luna-mig 'journalctl -f'
+$ g-ssh-cmd mig luna-mig 'journalctl -f' --project {project}
 ```
 
 ## Runing on an AWS ASG

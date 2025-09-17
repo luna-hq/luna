@@ -964,9 +964,9 @@ dependencies = [
 
 [[package]]
 name = "gcloud-auth"
-version = "1.1.1"
+version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4089aeec499899f6f1309803279763c34d898ca86c1a3e4616cba3ca6bce34b7"
+checksum = "ce5aa2c8f36c2be2c352fcf62b221d92fab43fbdc6e8a379eec7354d6e77e1b4"
 dependencies = [
  "async-trait",
  "base64",
@@ -976,7 +976,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
- "thiserror 1.0.69",
+ "thiserror",
  "time",
  "token-source",
  "tokio",
@@ -986,17 +986,17 @@ dependencies = [
 
 [[package]]
 name = "gcloud-gax"
-version = "1.3.0"
+version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22ac1090d3eb1887bf7d4e78cd58a7f50c78811b1c3d0924665c023849d297d1"
+checksum = "b7caaa7dbca6c00943a1e5d7816cc526a77f4a9895e4730d8759fd87aebe379c"
 dependencies = [
  "http",
- "thiserror 1.0.69",
+ "thiserror",
  "token-source",
  "tokio",
  "tokio-retry2",
  "tonic",
- "tower 0.4.13",
+ "tower",
  "tracing",
 ]
 
@@ -1026,20 +1026,20 @@ dependencies = [
 
 [[package]]
 name = "gcloud-metadata"
-version = "1.0.0"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d575310b4546530f6b21ee000c20155f11f9291fa0b67ea0949fd48aa49ed70"
+checksum = "61f706788c1b58712c513e4d403234707fd255f49caa89d1c930197418b5fb2c"
 dependencies = [
  "reqwest",
- "thiserror 1.0.69",
+ "thiserror",
  "tokio",
 ]
 
 [[package]]
 name = "gcloud-spanner"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ea5f0b58868bc438e221a93843d966a2ea9525427a9d4c157488a57ce77f5e6"
+checksum = "ba9e27ca6f1062d59d1212a948de08397fc69e51ac78ce3baaff1cf945bc6bc1"
 dependencies = [
  "base64",
  "bigdecimal",
@@ -1049,8 +1049,7 @@ dependencies = [
  "gcloud-longrunning",
  "parking_lot",
  "prost-types",
- "serde",
- "thiserror 1.0.69",
+ "thiserror",
  "time",
  "token-source",
  "tokio",
@@ -1154,9 +1153,9 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
 name = "hedge_rs"
-version = "0.2.4"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ae70168d5e78c43d09d04f285cd0ab57687785114addd8097fe7091388a88f1"
+checksum = "b25f4292d865e36b0c28e0a3a4d1ccfd9220c4f486ff99a90f2994120ed3fca7"
 dependencies = [
  "anyhow",
  "base64ct",
@@ -2267,7 +2266,7 @@ dependencies = [
  "sync_wrapper",
  "tokio",
  "tokio-native-tls",
- "tower 0.5.2",
+ "tower",
  "tower-http",
  "tower-service",
  "url",
@@ -2533,7 +2532,7 @@ checksum = "297f631f50729c8c99b84667867963997ec0b50f32b2a7dbcab828ef0541e8bb"
 dependencies = [
  "num-bigint",
  "num-traits",
- "thiserror 2.0.16",
+ "thiserror",
  "time",
 ]
 
@@ -2561,9 +2560,9 @@ dependencies = [
 
 [[package]]
 name = "spindle_rs"
-version = "0.2.16"
+version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af348902dc3f136a6c61cd1352383ef1e657e88d67aed217760e25a3779b2442"
+checksum = "93568005ee9ddf66ce92f9c6a09c403fd07347b3a0bf33e913386955d3ef073c"
 dependencies = [
  "anyhow",
  "exp_backoff",
@@ -2694,31 +2693,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.69"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52"
-dependencies = [
- "thiserror-impl 1.0.69",
-]
-
-[[package]]
-name = "thiserror"
 version = "2.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3467d614147380f2e4e374161426ff399c91084acd2363eaf549172b3d5e60c0"
 dependencies = [
- "thiserror-impl 2.0.16",
-]
-
-[[package]]
-name = "thiserror-impl"
-version = "1.0.69"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.106",
+ "thiserror-impl",
 ]
 
 [[package]]
@@ -2848,9 +2827,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-retry2"
-version = "0.5.8"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a0a122635e32bd827df297f311ca5e0292636bbd82f67ff84a4bedeab06dbeb"
+checksum = "7de2537bbad4f8b2d4237cdab9e7c4948a1f74744e45f54144eeccd05d3ad955"
 dependencies = [
  "pin-project",
  "tokio",
@@ -2929,7 +2908,7 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tokio-stream",
- "tower 0.5.2",
+ "tower",
  "tower-layer",
  "tower-service",
  "tracing",
@@ -2945,21 +2924,6 @@ dependencies = [
  "bytes",
  "prost",
  "tonic",
-]
-
-[[package]]
-name = "tower"
-version = "0.4.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8fa9be0de6cf49e536ce1851f987bd21a43b771b09473c3549a6c853db37c1c"
-dependencies = [
- "futures-core",
- "futures-util",
- "pin-project",
- "pin-project-lite",
- "tower-layer",
- "tower-service",
- "tracing",
 ]
 
 [[package]]
@@ -2994,7 +2958,7 @@ dependencies = [
  "http-body",
  "iri-string",
  "pin-project-lite",
- "tower 0.5.2",
+ "tower",
  "tower-layer",
  "tower-service",
 ]
@@ -3017,7 +2981,6 @@ version = "0.1.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "784e0ac535deb450455cbfa28a6f0df145ea1bb7ae51b821cf5e7927fdcfbdd0"
 dependencies = [
- "log",
  "pin-project-lite",
  "tracing-attributes",
  "tracing-core",

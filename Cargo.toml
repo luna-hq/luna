@@ -10,7 +10,7 @@ repository = "https://github.com/flowerinthenight/luna"
 [dependencies]
 memchr = "2.7"
 clap = { version = "4.5.47", features = ["derive"] }
-hedge_rs = "0.2.4"
+hedge_rs = "0.2.5"
 anyhow = "1.0.99"
 ctrlc = "3.5.0"
 env_logger = "0.11.8"

@@ -12,9 +12,12 @@ use gen_work::{WorkPool, WorkerCtrl};
 use hedge_rs::*;
 use ipc_writer::IpcWriter;
 use log::*;
-use std::sync::{
-    Arc, Mutex,
-    mpsc::{Receiver, Sender, channel},
+use std::{
+    fmt::Write as _,
+    sync::{
+        Arc, Mutex,
+        mpsc::{Receiver, Sender, channel},
+    },
 };
 use tcp_server::TcpServer;
 use tokio::runtime::Builder;
@@ -29,6 +32,10 @@ struct Args {
     /// API (TCP) host:port (format should be host:port)
     #[arg(long, long, default_value = "0.0.0.0:7688")]
     api_host_port: String,
+
+    /// DB home directory
+    #[arg(long, long, default_value = "/tmp/luna/")]
+    db_home_dir: String,
 
     /// Node ID (format should be host:port)
     #[arg(long, long, default_value = "0.0.0.0:8080")]
@@ -90,6 +97,9 @@ fn main() -> Result<()> {
     let base_conn = Connection::open_in_memory()?;
     base_conn.execute("INSTALL httpfs;", params![])?;
     base_conn.execute("LOAD httpfs;", params![])?;
+    let mut set_home_dir = String::new();
+    write!(&mut set_home_dir, "SET home_directory = '{}'", args.db_home_dir)?;
+    base_conn.execute(&set_home_dir, params![])?;
 
     let (tx_work, rx_work) = async_channel::unbounded::<WorkerCtrl>();
     let mut wp = WorkPool::new(rt.clone(), base_conn.try_clone()?, tx_work.clone(), rx_work.clone());

@@ -34,7 +34,7 @@ struct Args {
     api_host_port: String,
 
     /// DB home directory
-    #[arg(long, long, default_value = "/tmp/luna/")]
+    #[arg(long, long, default_value = "/tmp/luna")]
     db_home_dir: String,
 
     /// Node ID (format should be host:port)
@@ -98,7 +98,7 @@ fn main() -> Result<()> {
     base_conn.execute("INSTALL httpfs;", params![])?;
     base_conn.execute("LOAD httpfs;", params![])?;
     let mut set_home_dir = String::new();
-    write!(&mut set_home_dir, "SET home_directory = '{}'", args.db_home_dir)?;
+    write!(&mut set_home_dir, "SET home_directory = '{}';", args.db_home_dir)?;
     base_conn.execute(&set_home_dir, params![])?;
 
     let (tx_work, rx_work) = async_channel::unbounded::<WorkerCtrl>();

@@ -153,6 +153,31 @@ $ lunactl -p "SELECT CustomerId, Email FROM customers LIMIT 5;"
 $ lunactl -p "SELECT count(Index) FROM customers;" 
 ```
 
+## Runing on a GCP MIG
+
+A sample cloud-init [startup script](./startup-gcp-mig.sh) is provided for spinning up a [Managed Instance Group](https://cloud.google.com/compute/docs/instance-groups#managed_instance_groups) with Luna running as a systemd service.
+
+```bash
+# Create a launch template. The provided --service-account
+# will provide access to Spanner.
+$ gcloud compute instance-templates create luna-tmpl \
+  --machine-type e2-micro \
+  --service-account=name@project.iam.gserviceaccount.com \
+  --scopes=cloud-platform \
+  --metadata=startup-script=''"$(cat startup-gcp-mig.sh)"''
+
+# Create the MIG. Update {target-region} with actual value.
+$ gcloud compute instance-groups managed create luna-mig \
+  --template luna-tmpl --size 1 --region {target-region}
+
+# Let's use 'https://github.com/flowerinthenight/g-ssh-cmd'
+# to tail the VM logs.
+$ brew install flowerinthenight/tap/g-ssh-cmd
+
+# Assuming your 'gcloud' is configured properly:
+$ g-ssh-cmd mig luna-mig 'journalctl -f'
+```
+
 ## Todo
 
 - [ ] Client SDK (and samples) for mainstream programming languages

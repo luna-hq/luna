@@ -65,7 +65,7 @@ $39\n\nq:SELECT uuid, date, payer FROM tmpcur;\n\n
 
 #### [Response]
 
-Error messages will have two fields/columns called `input`, and `error`, with row values containing the input and the resulting error.
+Error messages will have two fields/columns: `input`, and `error`, with row values containing the input and the resulting error.
 
 ```
 schema:

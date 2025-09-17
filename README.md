@@ -185,7 +185,7 @@ A sample cloud-init [startup script](./startup-aws-asg.sh) is provided for spinn
 ```sh
 # Create a launch template. ImageId here is Amazon Linux, default VPC.
 # (Added newlines for readability. Might not run when copied as is.)
-# Replace 'keyName' with your own keypair.
+# Replace 'keyName' with your own keypair; update 'InstanceType'.
 $ aws ec2 create-launch-template \
   --launch-template-name luna-lt \
   --version-description version1 \

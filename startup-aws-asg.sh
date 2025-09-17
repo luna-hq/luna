@@ -6,7 +6,7 @@ mkdir -p /etc/luna/ && echo -n "$INTERNAL_IP" > /etc/luna/internal-ip
 
 VERSION=$(curl -s https://api.github.com/repos/flowerinthenight/luna/releases/latest | jq -r ".tag_name")
 cd /tmp/ && wget https://github.com/flowerinthenight/luna/releases/download/$VERSION/luna-$VERSION-x86_64-linux.tar.gz
-tar xvzf luna-$SAMPLE_VERSION-x86_64-linux.tar.gz
+tar xvzf luna-$VERSION-x86_64-linux.tar.gz
 cp -v luna /usr/local/bin/luna
 chown root:root /usr/local/bin/luna
 

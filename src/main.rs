@@ -52,11 +52,21 @@ struct Args {
     /// Optional, lock name (for hedge-rs)
     #[arg(long, long, default_value = "luna")]
     hedge_lockname: String,
+
+    /// Test anything, dev only
+    #[arg(long, long, default_value = "?")]
+    scratch: String,
 }
 
 fn main() -> Result<()> {
     env_logger::init();
     let args = Args::parse();
+
+    if args.scratch != "?" {
+        let s_line = String::from("one;two;three;four;five;six;seven;eight;nine;ten;");
+        s_line.split(';').for_each(|s| info!("{}", s));
+        return Ok(());
+    }
 
     info!(
         "start: api={}, node={}, lock={}/{}/{}",

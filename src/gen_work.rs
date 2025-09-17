@@ -213,27 +213,66 @@ fn handle_proto(
     info!("T{i}: payload={}", s_line);
 
     let mut rbs: Vec<DuckRecordBatch> = vec![];
-    let err_schema = Arc::new(Schema::new(vec![Field::new("error", DataType::Utf8, false)]));
     let mut err_rb = vec![];
+    let err_schema = Arc::new(Schema::new(vec![
+        Field::new("input", DataType::Utf8, false),
+        Field::new("error", DataType::Utf8, false),
+    ]));
 
     match &payload[0] {
         b'$' => match &payload[offset..(offset + 2)] {
-            b"x:" => match conn.execute(&s_line, params![]) {
-                Err(e) => {
-                    let mut err = String::new();
-                    write!(&mut err, "{e}")?;
-                    err_rb = vec![RecordBatch::try_new(
-                        err_schema.clone(),
-                        vec![Arc::new(StringArray::from(vec![err.as_str()]))],
-                    )?];
+            b"x:" => {
+                // s_line.split(";").for_each(|s| {
+                //     let s_trim = s.trim();
+                //     if s_trim.len() > 0 {
+                //         match conn.execute(s_trim, params![]) {
+                //             Err(e) => {
+                //                 let mut err = String::new();
+                //                 write!(&mut err, "{e}").unwrap();
+                //                 err_rb.push(
+                //                     RecordBatch::try_new(
+                //                         err_schema.clone(),
+                //                         vec![Arc::new(StringArray::from(vec![err.as_str()]))],
+                //                     )
+                //                     .unwrap(),
+                //                 );
+                //             }
+                //             Ok(_) => {
+                //                 err_rb.push(
+                //                     RecordBatch::try_new(
+                //                         err_schema.clone(),
+                //                         vec![Arc::new(StringArray::from(vec![OK]))],
+                //                     )
+                //                     .unwrap(),
+                //                 );
+                //             }
+                //         }
+                //     }
+                // });
+
+                match conn.execute(&s_line, params![]) {
+                    Err(e) => {
+                        let mut err = String::new();
+                        write!(&mut err, "{e}")?;
+                        err_rb = vec![RecordBatch::try_new(
+                            err_schema.clone(),
+                            vec![
+                                Arc::new(StringArray::from(vec![s_line.to_string()])),
+                                Arc::new(StringArray::from(vec![err.as_str()])),
+                            ],
+                        )?];
+                    }
+                    Ok(_) => {
+                        err_rb = vec![RecordBatch::try_new(
+                            err_schema.clone(),
+                            vec![
+                                Arc::new(StringArray::from(vec![s_line.to_string()])),
+                                Arc::new(StringArray::from(vec![OK])),
+                            ],
+                        )?];
+                    }
                 }
-                Ok(_) => {
-                    err_rb = vec![RecordBatch::try_new(
-                        err_schema.clone(),
-                        vec![Arc::new(StringArray::from(vec![OK]))],
-                    )?];
-                }
-            },
+            }
             b"q:" => {
                 let mut stmt = vec![];
                 match conn.prepare(&s_line) {
@@ -242,7 +281,10 @@ fn handle_proto(
                         write!(&mut err, "{e}")?;
                         err_rb = vec![RecordBatch::try_new(
                             err_schema.clone(),
-                            vec![Arc::new(StringArray::from(vec![err.as_str()]))],
+                            vec![
+                                Arc::new(StringArray::from(vec![s_line.to_string()])),
+                                Arc::new(StringArray::from(vec![err.as_str()])),
+                            ],
                         )?];
                     }
                     Ok(v) => stmt = vec![v],
@@ -255,7 +297,10 @@ fn handle_proto(
                             write!(&mut err, "{e}")?;
                             err_rb = vec![RecordBatch::try_new(
                                 err_schema.clone(),
-                                vec![Arc::new(StringArray::from(vec![err.as_str()]))],
+                                vec![
+                                    Arc::new(StringArray::from(vec![s_line.to_string()])),
+                                    Arc::new(StringArray::from(vec![err.as_str()])),
+                                ],
                             )?];
                         }
                         Ok(v) => {
@@ -263,7 +308,10 @@ fn handle_proto(
                             if rbs.len() == 0 {
                                 err_rb = vec![RecordBatch::try_new(
                                     err_schema.clone(),
-                                    vec![Arc::new(StringArray::from(vec!["EMPTY"]))],
+                                    vec![
+                                        Arc::new(StringArray::from(vec![s_line.to_string()])),
+                                        Arc::new(StringArray::from(vec!["EMPTY"])),
+                                    ],
                                 )?];
                             }
                         }
@@ -276,7 +324,10 @@ fn handle_proto(
                 write!(&mut err, "Unknown prefix '{pfx}'")?;
                 err_rb = vec![RecordBatch::try_new(
                     err_schema.clone(),
-                    vec![Arc::new(StringArray::from(vec![err.as_str()]))],
+                    vec![
+                        Arc::new(StringArray::from(vec![s_line.to_string()])),
+                        Arc::new(StringArray::from(vec![err.as_str()])),
+                    ],
                 )?];
             }
         },
@@ -286,7 +337,10 @@ fn handle_proto(
             write!(&mut err, "Unknown command '{cmd}'")?;
             err_rb = vec![RecordBatch::try_new(
                 err_schema.clone(),
-                vec![Arc::new(StringArray::from(vec![err.as_str()]))],
+                vec![
+                    Arc::new(StringArray::from(vec![s_line.to_string()])),
+                    Arc::new(StringArray::from(vec![err.as_str()])),
+                ],
             )?];
         }
     }

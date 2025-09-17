@@ -27,7 +27,6 @@ extern crate scopeguard;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
-#[clap(verbatim_doc_comment)]
 struct Args {
     /// API (TCP) host:port (format should be host:port)
     #[arg(long, long, default_value = "0.0.0.0:7688")]

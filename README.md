@@ -178,6 +178,10 @@ $ brew install flowerinthenight/tap/g-ssh-cmd
 $ g-ssh-cmd mig luna-mig 'journalctl -f'
 ```
 
+## Runing on an AWS ASG
+
+To be added.
+
 ## Todo
 
 - [ ] Client SDK (and samples) for mainstream programming languages

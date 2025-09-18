@@ -65,7 +65,7 @@ $39\n\nq:SELECT uuid, date, payer FROM tmpcur;\n\n
 
 #### [Response]
 
-Error messages will have two fields/columns: `input`, and `error`, with row values containing the input and the resulting error.
+- Error messages will have two fields/columns: `input`, and `error`, with row values containing the input and the resulting error.
 
 ```
 schema:
@@ -90,7 +90,7 @@ record:
 +--------------+--------------------------------------------------------+
 ```
 
-Success messages use the same format with `OK` as the value.
+- Success messages use the same format with `OK` as the value.
 
 ```
 +---------------------------------------------------------------+-------+
@@ -100,7 +100,7 @@ Success messages use the same format with `OK` as the value.
 +---------------------------------------------------------------+-------+
 ```
 
-Otherwise, the result will depend on the query result itself.
+- Otherwise, the result will depend on the query result itself.
 
 ```
 SELECT CustomerId, Email FROM customers;

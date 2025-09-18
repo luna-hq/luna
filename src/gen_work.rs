@@ -367,8 +367,7 @@ fn handle_proto(
     let (schema, _, _) = rbs[0].clone().into_parts();
     let schema_t: Arc<Schema>;
     unsafe {
-        // FIXME: There must be a better way than this.
-        schema_t = mem::transmute(schema.clone());
+        schema_t = mem::transmute(schema.clone()); // NOTE: there must be a better way
     }
 
     let mut sw = match StreamWriter::try_new(&mut ipc_writer, &schema_t) {
@@ -379,8 +378,7 @@ fn handle_proto(
     for rb in rbs {
         let rb_t: RecordBatch;
         unsafe {
-            // FIXME: There must be a better way than this.
-            rb_t = mem::transmute(rb);
+            rb_t = mem::transmute(rb); // NOTE: there must be a better way
         }
 
         let _ = sw.write(&rb_t);

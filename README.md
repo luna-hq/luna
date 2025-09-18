@@ -226,7 +226,7 @@ $ g-ssh-cmd asg luna-asg 'journalctl -f' --key keyName.pem
 ## Todo
 
 - [ ] Client SDK (and samples) for mainstream programming languages
-- [ ] Authentication
+- [ ] Authentication, users, and ACLs
 - [ ] Dedicated documentation site
 - [ ] Deployment guides and samples
 - [x] Release pipeline

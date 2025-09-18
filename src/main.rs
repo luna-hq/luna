@@ -53,7 +53,7 @@ struct Args {
     #[arg(long, long, default_value = "luna")]
     hedge_lockname: String,
 
-    /// Test anything, dev only
+    /// Test anything, set to any value (other than "?") to enable
     #[arg(long, long, default_value = "?")]
     scratch: String,
 }
@@ -63,9 +63,7 @@ fn main() -> Result<()> {
     let args = Args::parse();
 
     if args.scratch != "?" {
-        let s_line = String::from("one;two;three;four;five;six;seven;eight;nine;ten;");
-        s_line.split(';').for_each(|s| info!("{}", s));
-        return Ok(());
+        return scratch();
     }
 
     info!(
@@ -129,5 +127,12 @@ fn main() -> Result<()> {
     }
 
     wp.close();
+    Ok(())
+}
+
+/// Anything goes here.
+fn scratch() -> Result<()> {
+    let s_line = String::from("one;two;three;four;five;six;seven;eight;nine;ten;");
+    s_line.split(';').for_each(|s| info!("{}", s));
     Ok(())
 }

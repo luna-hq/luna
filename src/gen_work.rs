@@ -356,33 +356,36 @@ fn handle_proto(
             Ok(v) => v,
         };
 
-        let _ = sw.write(&err_rb[0]);
-        sw.finish()?;
-    } else {
-        let (schema, _, _) = rbs[0].clone().into_parts();
-        let schema_t: Arc<Schema>;
-        unsafe {
-            // FIXME: There must be a better way than this.
-            schema_t = mem::transmute(schema.clone());
-        }
-
-        let mut sw = match StreamWriter::try_new(&mut ipc_writer, &schema_t) {
-            Err(e) => return Err(anyhow!("{e}")),
-            Ok(v) => v,
-        };
-
-        for rb in rbs {
-            let rb_t: RecordBatch;
-            unsafe {
-                // FIXME: There must be a better way than this.
-                rb_t = mem::transmute(rb);
-            }
-
-            let _ = sw.write(&rb_t);
+        for rb in err_rb {
+            let _ = sw.write(&rb);
         }
 
         sw.finish()?;
+        return Ok(());
     }
 
+    let (schema, _, _) = rbs[0].clone().into_parts();
+    let schema_t: Arc<Schema>;
+    unsafe {
+        // FIXME: There must be a better way than this.
+        schema_t = mem::transmute(schema.clone());
+    }
+
+    let mut sw = match StreamWriter::try_new(&mut ipc_writer, &schema_t) {
+        Err(e) => return Err(anyhow!("{e}")),
+        Ok(v) => v,
+    };
+
+    for rb in rbs {
+        let rb_t: RecordBatch;
+        unsafe {
+            // FIXME: There must be a better way than this.
+            rb_t = mem::transmute(rb);
+        }
+
+        let _ = sw.write(&rb_t);
+    }
+
+    sw.finish()?;
     Ok(())
 }

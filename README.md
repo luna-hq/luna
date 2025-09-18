@@ -103,29 +103,35 @@ record:
 - Otherwise, the result will depend on the query result itself.
 
 ```
-SELECT CustomerId, Email FROM customers;
+SELECT CustomerId, LastName, FirstName, Email FROM customers;
 
 schema:
-  fields: 2
+  fields: 4
     - CustomerId: type=utf8, nullable
+    - LastName: type=utf8, nullable
+    - FirstName: type=utf8, nullable
     - Email: type=utf8, nullable
 
 record:
   schema:
-  fields: 2
+  fields: 4
     - CustomerId: type=utf8, nullable
+    - LastName: type=utf8, nullable
+    - FirstName: type=utf8, nullable
     - Email: type=utf8, nullable
   rows: 1000
-  col[0][CustomerId]: ["dE014d010c7ab0c" "d794Dd48988d2ac" ... ]
-  col[1][Email]: ["marieyates@gomez-spencer.info" "justincurtis@pierce.org" ...]
+  col[0][CustomerId]: ["dE014d010c7ab0c" "2B54172c8b65eC3" ...]
+  col[1][LastName]: ["Goodman" "Lane" ...]
+  col[2][FirstName]: ["Andrew" "Alvin" ...]
+  col[3][Email]: ["marieyates@gomez-spencer.info" "alexandra86@mccoy.com" ...]
 
-+-----------------+-------------------------------+
-| CustomerId      | Email                         |
-+-----------------+-------------------------------+
-| dE014d010c7ab0c | marieyates@gomez-spencer.info |
-| d794Dd48988d2ac | justincurtis@pierce.org       |
-| ...             | ...                           |
-+-----------------+-------------------------------+
++-----------------+----------+-----------+-------------------------------+
+| CustomerId      | LastName | FirstName | Email                         |
++-----------------+----------+-----------+-------------------------------+
+| dE014d010c7ab0c | Goodman  | Andrew    | marieyates@gomez-spencer.info |
+| 2B54172c8b65eC3 | Lane     | Alvin     | alexandra86@mccoy.com         |
+| ...             | ...      | ...       | ...                           |
++-----------------+----------+-----------+-------------------------------+
 ```
 
 ## Build

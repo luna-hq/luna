@@ -86,7 +86,7 @@ record:
 | input        | error                                                  |
 +--------------+--------------------------------------------------------+
 | DESCRIBE me; | Catalog Error: Table with name me does not exist!      |
-|              | Did you mean \"pg_namespace\"?\n\nLINE 1: describe me; |
+|              | Did you mean \"pg_namespace\"?\n\nLINE 1: DESCRIBE me; |
 +--------------+--------------------------------------------------------+
 ```
 

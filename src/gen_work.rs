@@ -25,14 +25,14 @@ use tokio::{
 pub const DELIM: &str = "\r\n";
 pub const OK: &str = "OK";
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum WorkerCtrl {
     Exit,
     HandleTcpStream {
-        stream: Arc<Mutex<TcpStream>>,
+        stream: TcpStream,
     },
     HandleProto {
-        stream: Arc<Mutex<TcpStream>>,
+        stream: TcpStream,
         payload: Vec<u8>,
         offset: usize,
         len: usize,
@@ -143,7 +143,7 @@ impl WorkPool {
     }
 }
 
-fn handle_tcp_stream(i: usize, rt: Arc<Runtime>, stream: Arc<Mutex<TcpStream>>, tx_work: AsyncSender<WorkerCtrl>) {
+fn handle_tcp_stream(i: usize, rt: Arc<Runtime>, mut stream: TcpStream, tx_work: AsyncSender<WorkerCtrl>) {
     let start = Instant::now();
     defer!(info!("T{i}: handle_tcp_stream took {:?}", start.elapsed()));
 
@@ -153,7 +153,7 @@ fn handle_tcp_stream(i: usize, rt: Arc<Runtime>, stream: Arc<Mutex<TcpStream>>, 
         let mut accum = Vec::new();
         let mut buf = vec![0; 1024];
         loop {
-            match stream.lock().unwrap().read(&mut buf).await {
+            match stream.read(&mut buf).await {
                 Err(_) => break,
                 Ok(n) => {
                     if n == 0 {
@@ -200,7 +200,7 @@ fn handle_proto(
     i: usize,
     rt: Arc<Runtime>,
     conn: Connection,
-    stream: Arc<Mutex<TcpStream>>,
+    stream: TcpStream,
     payload: Vec<u8>,
     offset: usize,
     len: usize,
@@ -345,8 +345,10 @@ fn handle_proto(
         }
     }
 
+    let (_, write_half) = stream.into_split();
+
     let mut ipc_writer = IpcWriter {
-        stream: stream,
+        stream: write_half,
         handle: rt.handle(),
     };
 
@@ -364,10 +366,11 @@ fn handle_proto(
         return Ok(());
     }
 
+    // NOTE: There must be a better way than transmute.
     let (schema, _, _) = rbs[0].clone().into_parts();
     let schema_t: Arc<Schema>;
     unsafe {
-        schema_t = mem::transmute(schema.clone()); // NOTE: there must be a better way
+        schema_t = mem::transmute(schema.clone());
     }
 
     let mut sw = match StreamWriter::try_new(&mut ipc_writer, &schema_t) {
@@ -378,7 +381,7 @@ fn handle_proto(
     for rb in rbs {
         let rb_t: RecordBatch;
         unsafe {
-            rb_t = mem::transmute(rb); // NOTE: there must be a better way
+            rb_t = mem::transmute(rb);
         }
 
         let _ = sw.write(&rb_t);

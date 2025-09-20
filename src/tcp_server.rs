@@ -1,10 +1,7 @@
 use crate::WorkerCtrl;
 use async_channel::Sender as AsyncSender;
 use log::*;
-use std::{
-    sync::{Arc, Mutex},
-    thread,
-};
+use std::{sync::Arc, thread};
 use tokio::{net::TcpListener, runtime::Runtime};
 
 pub struct TcpServer {
@@ -31,14 +28,9 @@ impl TcpServer {
                     let (stream, addr) = listen.accept().await.unwrap();
                     info!("accepted connection from {}", addr);
 
-                    let tx_work_clone = tx_work.clone();
+                    let tx_work = tx_work.clone();
                     rt.spawn(async move {
-                        tx_work_clone
-                            .send(WorkerCtrl::HandleTcpStream {
-                                stream: Arc::new(Mutex::new(stream)),
-                            })
-                            .await
-                            .unwrap();
+                        tx_work.send(WorkerCtrl::HandleTcpStream { stream }).await.unwrap();
                     });
                 }
             });

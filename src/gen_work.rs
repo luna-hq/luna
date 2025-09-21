@@ -83,14 +83,14 @@ impl WorkPool {
         for i in 0..cpus {
             let rt_clone = self.rt.clone();
             let conn = self.conn.try_clone()?;
-            let tx_work_clone = self.tx_work.clone();
-            let rx_works_clone = rx_works.clone();
+            let tx_work = self.tx_work.clone();
+            let rx_works = rx_works.clone();
             let h = thread::spawn(move || -> Result<()> {
                 loop {
                     let mut rx: Option<AsyncReceiver<WorkerCtrl>> = None;
 
                     {
-                        let mg = match rx_works_clone.lock() {
+                        let mg = match rx_works.lock() {
                             Err(e) => return Err(anyhow!("{e}")),
                             Ok(v) => v,
                         };
@@ -108,7 +108,7 @@ impl WorkPool {
                     match rx_in.blocking_recv().unwrap() {
                         WorkerCtrl::Exit => return Ok(()),
                         WorkerCtrl::HandleTcpStream { stream } => {
-                            handle_tcp_stream(i, rt_clone.clone(), stream, tx_work_clone.clone())
+                            handle_tcp_stream(i, rt_clone.clone(), stream, tx_work.clone())
                         }
                         WorkerCtrl::HandleProto {
                             stream,

@@ -2,7 +2,7 @@ use std::io::Result;
 use tokio::{io::AsyncWriteExt, net::tcp::OwnedWriteHalf, runtime::Handle};
 
 pub struct IpcWriter<'a> {
-    pub stream: OwnedWriteHalf,
+    pub stream: &'a mut OwnedWriteHalf,
     pub handle: &'a Handle,
 }
 

@@ -184,15 +184,17 @@ fn handle_tcp_stream(i: usize, rt: Arc<Runtime>, mut stream: TcpStream, tx_work:
             }
         }
 
-        tx_work
-            .send(WorkerCtrl::HandleProto {
-                stream,
-                payload: accum,
-                offset,
-                len,
-            })
-            .await
-            .unwrap();
+        rt.spawn(async move {
+            tx_work
+                .send(WorkerCtrl::HandleProto {
+                    stream,
+                    payload: accum,
+                    offset,
+                    len,
+                })
+                .await
+                .unwrap();
+        });
     });
 }
 
@@ -345,10 +347,10 @@ fn handle_proto(
         }
     }
 
-    let (_, write_half) = stream.into_split();
+    let (_, mut write_half) = stream.into_split();
 
     let mut ipc_writer = IpcWriter {
-        stream: write_half,
+        stream: &mut write_half,
         handle: rt.handle(),
     };
 

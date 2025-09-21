@@ -25,9 +25,7 @@ impl TcpServer {
                 info!("listening from {}", &host_port);
 
                 loop {
-                    let (stream, addr) = listen.accept().await.unwrap();
-                    info!("accepted connection from {}", addr);
-
+                    let (stream, _) = listen.accept().await.unwrap();
                     let tx_work = tx_work.clone();
                     rt.spawn(async move {
                         tx_work.send(WorkerCtrl::HandleTcpStream { stream }).await.unwrap();

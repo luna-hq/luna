@@ -372,7 +372,7 @@ fn handle_proto(
     let (schema, _, _) = rbs[0].clone().into_parts();
     let schema_t: Arc<Schema>;
     unsafe {
-        schema_t = mem::transmute(schema.clone());
+        schema_t = mem::transmute(schema);
     }
 
     let mut sw = match StreamWriter::try_new(&mut ipc_writer, &schema_t) {

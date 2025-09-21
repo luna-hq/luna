@@ -44,7 +44,7 @@ pub struct WorkPool {
     conn: Connection,
     tx_work: AsyncSender<WorkerCtrl>,
     rx_work: AsyncReceiver<WorkerCtrl>,
-    work_handles: Vec<Option<JoinHandle<Result<()>>>>,
+    handles: Vec<Option<JoinHandle<Result<()>>>>,
 }
 
 impl WorkPool {
@@ -59,7 +59,7 @@ impl WorkPool {
             conn,
             tx_work,
             rx_work,
-            work_handles: vec![],
+            handles: vec![],
         }
     }
 
@@ -122,20 +122,20 @@ impl WorkPool {
                 }
             });
 
-            self.work_handles.push(Some(h));
+            self.handles.push(Some(h));
         }
 
         Ok(())
     }
 
     pub fn close(&mut self) {
-        for _ in &self.work_handles {
+        for _ in &self.handles {
             self.rt.clone().block_on(async {
                 self.tx_work.send(WorkerCtrl::Exit).await.unwrap();
             });
         }
 
-        for h in self.work_handles.iter_mut() {
+        for h in self.handles.iter_mut() {
             if let Some(handle) = h.take() {
                 let _ = handle.join();
             }

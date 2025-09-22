@@ -87,7 +87,7 @@ impl WorkPool {
             let rx_works = rx_works.clone();
             let h = thread::spawn(move || -> Result<()> {
                 loop {
-                    let mut rx: Option<AsyncReceiver<WorkerCtrl>> = None;
+                    let mut rx = vec![];
 
                     {
                         let mg = match rx_works.lock() {
@@ -96,13 +96,13 @@ impl WorkPool {
                         };
 
                         if let Some(v) = mg.get(&i) {
-                            rx = Some(v.clone());
+                            rx = vec![v.clone()];
                         }
                     }
 
                     let (tx_in, mut rx_in) = tokio_mpsc::unbounded_channel::<WorkerCtrl>();
                     rt_clone.block_on(async {
-                        tx_in.send(rx.unwrap().recv().await.unwrap()).unwrap();
+                        tx_in.send(rx[0].recv().await.unwrap()).unwrap();
                     });
 
                     match rx_in.blocking_recv().unwrap() {

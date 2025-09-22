@@ -1,30 +1,27 @@
 [package]
 name = "luna"
-version = "0.2.0"
-edition = "2024"
-authors = ["flowerinthenight <root@flowerinthenight.com>"]
 description = "In-memory OLAP SQL server for object storage data."
-license = "Apache-2.0"
-repository = "https://github.com/flowerinthenight/luna"
+version = { workspace = true }
+edition = { workspace = true }
+authors = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
 
 [dependencies]
-memchr = "2.7"
-clap = { version = "4.5.48", features = ["derive"] }
-hedge_rs = "0.2.6"
-anyhow = "1.0.100"
-ctrlc = "3.5.0"
-env_logger = "0.11.8"
-log = "0.4.28"
-scopeguard = "1.2.0"
-duckdb = { version = "1.4.0", features = ["bundled"] }
-# Try to sync with duckdb-rs version due to mem::transmute.
-arrow = "56.1.0"
-arrow-array = "56.1.0"
-arrow-schema = "56.1.0"
-arrow-ipc = "56.1.0"
-num_cpus = "1.17.0"
-async-channel = "=2.5.0"
-tokio = { version = "1.47.1", features = ["full"] }
-# We don't depend directly on rustls, but it's panicking without this.
-# Reference: https://github.com/rustls/rustls/issues/1938
-rustls = { version = "0.23.32", default-features = false, features = ["ring", "logging", "std", "tls12"] }
+memchr = { workspace = true }
+clap = { workspace = true }
+hedge_rs = { workspace = true }
+anyhow = { workspace = true }
+ctrlc = { workspace = true }
+env_logger = { workspace = true }
+log = { workspace = true }
+scopeguard = { workspace = true }
+duckdb = { workspace = true }
+arrow = { workspace = true }
+arrow-array = { workspace = true }
+arrow-schema = { workspace = true }
+arrow-ipc = { workspace = true }
+num_cpus = { workspace = true }
+async-channel = { workspace = true }
+tokio = { workspace = true }
+rustls = { workspace = true }

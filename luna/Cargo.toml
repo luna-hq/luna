@@ -8,20 +8,20 @@ license = { workspace = true }
 repository = { workspace = true }
 
 [dependencies]
-memchr = { workspace = true }
-clap = { workspace = true }
-hedge_rs = { workspace = true }
 anyhow = { workspace = true }
-ctrlc = { workspace = true }
-env_logger = { workspace = true }
-log = { workspace = true }
-scopeguard = { workspace = true }
-duckdb = { workspace = true }
 arrow = { workspace = true }
 arrow-array = { workspace = true }
-arrow-schema = { workspace = true }
 arrow-ipc = { workspace = true }
-num_cpus = { workspace = true }
+arrow-schema = { workspace = true }
 async-channel = { workspace = true }
-tokio = { workspace = true }
+clap = { workspace = true }
+ctrlc = { workspace = true }
+duckdb = { workspace = true }
+env_logger = { workspace = true }
+hedge_rs = { workspace = true }
+log = { workspace = true }
+memchr = { workspace = true }
+num_cpus = { workspace = true }
 rustls = { workspace = true }
+scopeguard = { workspace = true }
+tokio = { workspace = true }

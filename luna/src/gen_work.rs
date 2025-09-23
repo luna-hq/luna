@@ -100,12 +100,12 @@ impl WorkPool {
                         }
                     }
 
-                    let (tx_in, mut rx_in) = tokio_mpsc::unbounded_channel::<WorkerCtrl>();
+                    let (tx_bridge, mut rx_bridge) = tokio_mpsc::unbounded_channel::<WorkerCtrl>();
                     rt_clone.block_on(async {
-                        tx_in.send(rx[0].recv().await.unwrap()).unwrap();
+                        tx_bridge.send(rx[0].recv().await.unwrap()).unwrap();
                     });
 
-                    match rx_in.blocking_recv().unwrap() {
+                    match rx_bridge.blocking_recv().unwrap() {
                         WorkerCtrl::Exit => return Ok(()),
                         WorkerCtrl::HandleTcpStream { stream } => {
                             handle_tcp_stream(i, rt_clone.clone(), stream, tx_work.clone())

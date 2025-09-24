@@ -1,49 +1,50 @@
 use crate::IpcWriter;
+use crate::tcp_server::{EMPTY, OK};
 use anyhow::{Result, anyhow};
 use arrow_array::{RecordBatch, StringArray};
 use arrow_ipc::writer::StreamWriter;
 use arrow_schema::{DataType, Field, Schema};
 use async_channel::{Receiver as AsyncReceiver, Sender as AsyncSender};
 use duckdb::{Connection, arrow::record_batch::RecordBatch as DuckRecordBatch, params};
-use log::*;
-use memchr::memmem;
 use std::{
     collections::HashMap,
     fmt::Write as _,
     mem,
     sync::{Arc, Mutex},
     thread::{self, JoinHandle},
-    time::Instant,
 };
 use tokio::{
-    io::AsyncReadExt,
-    net::TcpStream,
+    net::tcp::OwnedWriteHalf,
     runtime::Runtime,
     sync::mpsc::{self as tokio_mpsc},
 };
 
-pub const DELIM: &str = "\r\n";
-pub const OK: &str = "OK";
-
 #[derive(Debug)]
-pub enum WorkerCtrl {
+pub enum WorkCmd {
     Exit,
-    HandleTcpStream {
-        stream: TcpStream,
+    ProtoWriteError {
+        write_half: Arc<Mutex<OwnedWriteHalf>>,
+        input: String,
+        error: String,
+        tx_wait: AsyncSender<usize>,
     },
-    HandleProto {
-        stream: TcpStream,
-        payload: Vec<u8>,
-        offset: usize,
-        len: usize,
+    ProtoDuckExec {
+        write_half: Arc<Mutex<OwnedWriteHalf>>,
+        query: String,
+        tx_wait: AsyncSender<usize>,
+    },
+    ProtoDuckQuery {
+        write_half: Arc<Mutex<OwnedWriteHalf>>,
+        query: String,
+        tx_wait: AsyncSender<usize>,
     },
 }
 
 pub struct WorkPool {
     rt: Arc<Runtime>,
     conn: Connection,
-    tx_work: AsyncSender<WorkerCtrl>,
-    rx_work: AsyncReceiver<WorkerCtrl>,
+    tx_work: AsyncSender<WorkCmd>,
+    rx_work: AsyncReceiver<WorkCmd>,
     handles: Vec<Option<JoinHandle<Result<()>>>>,
 }
 
@@ -51,8 +52,8 @@ impl WorkPool {
     pub fn new(
         rt: Arc<Runtime>,
         conn: Connection,
-        tx_work: AsyncSender<WorkerCtrl>,
-        rx_work: AsyncReceiver<WorkerCtrl>,
+        tx_work: AsyncSender<WorkCmd>,
+        rx_work: AsyncReceiver<WorkCmd>,
     ) -> Self {
         WorkPool {
             rt,
@@ -64,10 +65,10 @@ impl WorkPool {
     }
 
     pub fn run(&mut self) -> Result<()> {
-        let rx_works: Arc<Mutex<HashMap<usize, AsyncReceiver<WorkerCtrl>>>> = Arc::new(Mutex::new(HashMap::new()));
-        let cpus = num_cpus::get();
+        let rx_works: Arc<Mutex<HashMap<usize, AsyncReceiver<WorkCmd>>>> = Arc::new(Mutex::new(HashMap::new()));
+        let max = num_cpus::get() * 2;
 
-        for i in 0..cpus {
+        for i in 0..max {
             let rx_works_clone = rx_works.clone();
 
             {
@@ -80,10 +81,9 @@ impl WorkPool {
             }
         }
 
-        for i in 0..cpus {
+        for i in 0..max {
             let rt_clone = self.rt.clone();
             let conn = self.conn.try_clone()?;
-            let tx_work = self.tx_work.clone();
             let rx_works = rx_works.clone();
             let h = thread::spawn(move || -> Result<()> {
                 loop {
@@ -100,23 +100,45 @@ impl WorkPool {
                         }
                     }
 
-                    let (tx_bridge, mut rx_bridge) = tokio_mpsc::unbounded_channel::<WorkerCtrl>();
+                    let (tx_bridge, mut rx_bridge) = tokio_mpsc::unbounded_channel::<WorkCmd>();
                     rt_clone.block_on(async {
                         tx_bridge.send(rx[0].recv().await.unwrap()).unwrap();
                     });
 
                     match rx_bridge.blocking_recv().unwrap() {
-                        WorkerCtrl::Exit => return Ok(()),
-                        WorkerCtrl::HandleTcpStream { stream } => {
-                            handle_tcp_stream(i, rt_clone.clone(), stream, tx_work.clone())
-                        }
-                        WorkerCtrl::HandleProto {
-                            stream,
-                            payload,
-                            offset,
-                            len,
+                        WorkCmd::Exit => return Ok(()),
+                        WorkCmd::ProtoWriteError {
+                            write_half,
+                            input,
+                            error,
+                            tx_wait,
                         } => {
-                            handle_proto(i, rt_clone.clone(), conn.try_clone()?, stream, payload, offset, len)?;
+                            proto_write_error(rt_clone.clone(), write_half, input, error)?;
+                            tx_wait.send_blocking(0)?;
+                        }
+                        WorkCmd::ProtoDuckExec {
+                            write_half,
+                            query,
+                            tx_wait,
+                        } => {
+                            tx_wait.send_blocking(proto_duck_execute(
+                                rt_clone.clone(),
+                                conn.try_clone()?,
+                                write_half,
+                                query,
+                            )?)?;
+                        }
+                        WorkCmd::ProtoDuckQuery {
+                            write_half,
+                            query,
+                            tx_wait,
+                        } => {
+                            tx_wait.send_blocking(proto_duck_query(
+                                rt_clone.clone(),
+                                conn.try_clone()?,
+                                write_half,
+                                query,
+                            )?)?;
                         }
                     }
                 }
@@ -131,7 +153,7 @@ impl WorkPool {
     pub fn close(&mut self) {
         for _ in &self.handles {
             self.rt.clone().block_on(async {
-                self.tx_work.send(WorkerCtrl::Exit).await.unwrap();
+                self.tx_work.send(WorkCmd::Exit).await.unwrap();
             });
         }
 
@@ -143,230 +165,108 @@ impl WorkPool {
     }
 }
 
-fn handle_tcp_stream(i: usize, rt: Arc<Runtime>, mut stream: TcpStream, tx_work: AsyncSender<WorkerCtrl>) {
-    let start = Instant::now();
-    defer!(info!("T{i}: handle_tcp_stream took {:?}", start.elapsed()));
-
-    rt.block_on(async {
-        let mut offset = 0;
-        let mut len = 0;
-        let mut accum = Vec::new();
-        let mut buf = vec![0; 1024];
-        loop {
-            match stream.read(&mut buf).await {
-                Err(_) => break,
-                Ok(n) => {
-                    if n == 0 {
-                        break;
-                    }
-
-                    let data = &buf[0..n];
-                    accum.extend_from_slice(data);
-
-                    let delim = memmem::find(&data, DELIM.as_bytes());
-                    if delim.is_some() && len < 1 {
-                        offset = delim.unwrap() + 2;
-                        let slen = &accum[1..delim.unwrap()];
-                        len = match str::from_utf8(slen) {
-                            Err(_) => 0,
-                            Ok(v) => v.parse::<usize>().unwrap_or(0),
-                        };
-                    }
-
-                    if ((len + offset) > 0) && accum.len() >= (len + offset) {
-                        break; // got all data
-                    }
-
-                    if n >= 2 && buf[n - 2] == DELIM.as_bytes()[0] && buf[n - 1] == DELIM.as_bytes()[1] {
-                        break; // end-of-stream
-                    }
-                }
-            }
-        }
-
-        rt.spawn(async move {
-            tx_work
-                .send(WorkerCtrl::HandleProto {
-                    stream,
-                    payload: accum,
-                    offset,
-                    len,
-                })
-                .await
-                .unwrap();
-        });
-    });
-}
-
-fn handle_proto(
-    i: usize,
+fn proto_write_error(
     rt: Arc<Runtime>,
-    conn: Connection,
-    stream: TcpStream,
-    payload: Vec<u8>,
-    offset: usize,
-    len: usize,
+    write_half: Arc<Mutex<OwnedWriteHalf>>,
+    input: String,
+    error: String,
 ) -> Result<()> {
-    let start = Instant::now();
-    defer!(info!("T{i}: handle_proto took {:?}", start.elapsed()));
-
-    let line = &payload[(offset + 2)..(len + offset)];
-    let s_line = String::from_utf8_lossy(line);
-    info!("T{i}: payload={}", s_line);
-
-    let mut rbs: Vec<DuckRecordBatch> = vec![];
-    let mut err_rb = vec![];
     let err_schema = Arc::new(Schema::new(vec![
         Field::new("input", DataType::Utf8, false),
         Field::new("error", DataType::Utf8, false),
     ]));
 
-    match &payload[0] {
-        b'$' => match &payload[offset..(offset + 2)] {
-            b"x:" => {
-                // s_line.split(";").for_each(|s| {
-                //     let s_trim = s.trim();
-                //     if s_trim.len() > 0 {
-                //         match conn.execute(s_trim, params![]) {
-                //             Err(e) => {
-                //                 let mut err = String::new();
-                //                 write!(&mut err, "{e}").unwrap();
-                //                 err_rb.push(
-                //                     RecordBatch::try_new(
-                //                         err_schema.clone(),
-                //                         vec![Arc::new(StringArray::from(vec![err.as_str()]))],
-                //                     )
-                //                     .unwrap(),
-                //                 );
-                //             }
-                //             Ok(_) => {
-                //                 err_rb.push(
-                //                     RecordBatch::try_new(
-                //                         err_schema.clone(),
-                //                         vec![Arc::new(StringArray::from(vec![OK]))],
-                //                     )
-                //                     .unwrap(),
-                //                 );
-                //             }
-                //         }
-                //     }
-                // });
-
-                match conn.execute(&s_line, params![]) {
-                    Err(e) => {
-                        let mut err = String::new();
-                        write!(&mut err, "{e}")?;
-                        err_rb = vec![RecordBatch::try_new(
-                            err_schema.clone(),
-                            vec![
-                                Arc::new(StringArray::from(vec![s_line.to_string()])),
-                                Arc::new(StringArray::from(vec![err.as_str()])),
-                            ],
-                        )?];
-                    }
-                    Ok(_) => {
-                        err_rb = vec![RecordBatch::try_new(
-                            err_schema.clone(),
-                            vec![
-                                Arc::new(StringArray::from(vec![s_line.to_string()])),
-                                Arc::new(StringArray::from(vec![OK])),
-                            ],
-                        )?];
-                    }
-                }
-            }
-            b"q:" => {
-                let mut stmt = vec![];
-                match conn.prepare(&s_line) {
-                    Err(e) => {
-                        let mut err = String::new();
-                        write!(&mut err, "{e}")?;
-                        err_rb = vec![RecordBatch::try_new(
-                            err_schema.clone(),
-                            vec![
-                                Arc::new(StringArray::from(vec![s_line.to_string()])),
-                                Arc::new(StringArray::from(vec![err.as_str()])),
-                            ],
-                        )?];
-                    }
-                    Ok(v) => stmt = vec![v],
-                };
-
-                if stmt.len() > 0 {
-                    match stmt[0].query_arrow([]) {
-                        Err(e) => {
-                            let mut err = String::new();
-                            write!(&mut err, "{e}")?;
-                            err_rb = vec![RecordBatch::try_new(
-                                err_schema.clone(),
-                                vec![
-                                    Arc::new(StringArray::from(vec![s_line.to_string()])),
-                                    Arc::new(StringArray::from(vec![err.as_str()])),
-                                ],
-                            )?];
-                        }
-                        Ok(v) => {
-                            rbs = v.collect();
-                            if rbs.len() == 0 {
-                                err_rb = vec![RecordBatch::try_new(
-                                    err_schema.clone(),
-                                    vec![
-                                        Arc::new(StringArray::from(vec![s_line.to_string()])),
-                                        Arc::new(StringArray::from(vec!["EMPTY"])),
-                                    ],
-                                )?];
-                            }
-                        }
-                    }
-                }
-            }
-            _ => {
-                let pfx = String::from_utf8_lossy(&payload[offset..(offset + 2)]);
-                let mut err = String::new();
-                write!(&mut err, "Unknown prefix '{pfx}'")?;
-                err_rb = vec![RecordBatch::try_new(
-                    err_schema.clone(),
-                    vec![
-                        Arc::new(StringArray::from(vec![s_line.to_string()])),
-                        Arc::new(StringArray::from(vec![err.as_str()])),
-                    ],
-                )?];
-            }
-        },
-        _ => {
-            let cmd = String::from(payload[0] as char);
-            let mut err = String::new();
-            write!(&mut err, "Unknown command '{cmd}'")?;
-            err_rb = vec![RecordBatch::try_new(
-                err_schema.clone(),
-                vec![
-                    Arc::new(StringArray::from(vec![s_line.to_string()])),
-                    Arc::new(StringArray::from(vec![err.as_str()])),
-                ],
-            )?];
-        }
-    }
-
-    let (_, mut write_half) = stream.into_split();
+    let err_rb = RecordBatch::try_new(
+        err_schema.clone(),
+        vec![
+            Arc::new(StringArray::from(vec![input])),
+            Arc::new(StringArray::from(vec![error])),
+        ],
+    )?;
 
     let mut ipc_writer = IpcWriter {
-        stream: &mut write_half,
+        write_half: write_half,
         handle: rt.handle(),
     };
 
-    if err_rb.len() > 0 {
-        let mut sw = match StreamWriter::try_new(&mut ipc_writer, &err_schema) {
-            Err(e) => return Err(anyhow!("{e}")),
-            Ok(v) => v,
-        };
+    let mut sw = match StreamWriter::try_new(&mut ipc_writer, &err_schema) {
+        Err(e) => return Err(anyhow!("{e}")),
+        Ok(v) => v,
+    };
 
-        for rb in err_rb {
-            let _ = sw.write(&rb);
+    let _ = sw.write(&err_rb);
+    let _ = sw.finish();
+    Ok(())
+}
+
+fn proto_duck_execute(
+    rt: Arc<Runtime>,
+    conn: Connection,
+    write_half: Arc<Mutex<OwnedWriteHalf>>,
+    query: String,
+) -> Result<usize> {
+    let mut ret: usize = 0;
+    match conn.execute(&query, params![]) {
+        Err(e) => {
+            let mut err = String::new();
+            write!(&mut err, "{e}")?;
+            proto_write_error(rt.clone(), write_half, query, err)?;
         }
-
-        sw.finish()?;
-        return Ok(());
+        Ok(n) => {
+            proto_write_error(rt.clone(), write_half, query, OK.to_string())?;
+            ret = n;
+        }
     }
+
+    Ok(ret)
+}
+
+fn proto_duck_query(
+    rt: Arc<Runtime>,
+    conn: Connection,
+    write_half: Arc<Mutex<OwnedWriteHalf>>,
+    query: String,
+) -> Result<usize> {
+    let mut rbs: Vec<DuckRecordBatch> = vec![];
+    let mut errs = vec![];
+    let mut stmt = vec![];
+    match conn.prepare(&query) {
+        Err(e) => {
+            let mut err = String::new();
+            write!(&mut err, "{e}")?;
+            errs.push(query.clone());
+            errs.push(err);
+        }
+        Ok(v) => stmt = vec![v],
+    };
+
+    if stmt.len() > 0 {
+        match stmt[0].query_arrow([]) {
+            Err(e) => {
+                let mut err = String::new();
+                write!(&mut err, "{e}")?;
+                errs.push(query);
+                errs.push(err);
+            }
+            Ok(v) => {
+                rbs = v.collect();
+                if rbs.len() == 0 {
+                    errs.push(query);
+                    errs.push(EMPTY.to_string());
+                }
+            }
+        }
+    }
+
+    if errs.len() == 2 {
+        proto_write_error(rt.clone(), write_half, errs[0].clone(), errs[1].clone())?;
+        return Ok(0);
+    }
+
+    let mut ipc_writer = IpcWriter {
+        write_half: write_half,
+        handle: rt.handle(),
+    };
 
     // NOTE: There must be a better way than transmute.
     let (schema, _, _) = rbs[0].clone().into_parts();
@@ -380,6 +280,7 @@ fn handle_proto(
         Ok(v) => v,
     };
 
+    let n = rbs.len();
     for rb in rbs {
         let rb_t: RecordBatch;
         unsafe {
@@ -389,6 +290,6 @@ fn handle_proto(
         let _ = sw.write(&rb_t);
     }
 
-    sw.finish()?;
-    Ok(())
+    let _ = sw.finish();
+    Ok(n)
 }

@@ -8,7 +8,7 @@ use anyhow::{Result, anyhow};
 use clap::Parser;
 use ctrlc;
 use duckdb::{Connection, params};
-use gen_work::{WorkPool, WorkerCtrl};
+use gen_work::{WorkCmd, WorkPool};
 use hedge_rs::*;
 use ipc_writer::IpcWriter;
 use log::*;
@@ -109,11 +109,11 @@ fn main() -> Result<()> {
     base_conn.execute("INSTALL httpfs;", params![])?;
     base_conn.execute("LOAD httpfs;", params![])?;
 
-    let (tx_work, rx_work) = async_channel::unbounded::<WorkerCtrl>();
+    let (tx_work, rx_work) = async_channel::unbounded::<WorkCmd>();
     let mut wp = WorkPool::new(rt.clone(), base_conn.try_clone()?, tx_work.clone(), rx_work.clone());
     wp.run()?;
 
-    TcpServer::new(rt.clone(), args.api_host_port.clone(), tx_work.clone()).run();
+    TcpServer::new(rt.clone(), args.api_host_port.clone(), Arc::new(tx_work.clone())).run();
 
     rx_ctrlc.recv()?;
 

@@ -169,7 +169,7 @@ A sample cloud-init [startup script](./startup-gcp-mig.sh) is provided for spinn
 ```bash
 # Create a launch template. Update --service-account with
 # your own service account. You can update the --machine-type.
-$ cd scripts/
+$ cd luna/scripts/
 $ gcloud compute instance-templates create luna-tmpl \
   --machine-type e2-micro \
   --service-account=name@project.iam.gserviceaccount.com \
@@ -196,7 +196,7 @@ A sample cloud-init [startup script](./startup-aws-asg.sh) is provided for spinn
 # Create a launch template. ImageId here is Amazon Linux, default VPC.
 # (Added newlines for readability. Might not run when copied as is.)
 # Replace 'keyName' with your own keypair; update 'InstanceType'.
-$ cd scripts/
+$ cd luna/scripts/
 $ aws ec2 create-launch-template \
   --launch-template-name luna-lt \
   --version-description version1 \

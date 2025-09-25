@@ -252,6 +252,8 @@ $ g-ssh-cmd asg luna-asg 'journalctl -f' --key keyName.pem
 - [ ] Client SDK (and samples) for mainstream programming languages
 - [ ] Authentication, users, and ACLs
   - [x] Simple, server-level password auth
+- [ ] Preload data import(s) on startup
+- [ ] Watch data source(s) changes
 - [ ] Dedicated documentation site
 - [ ] Deployment guides and samples
 - [x] Release pipeline

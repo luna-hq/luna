@@ -5,6 +5,7 @@ mod tcp_server;
 mod utils;
 
 use anyhow::{Result, anyhow};
+use bcrypt::hash;
 use clap::Parser;
 use ctrlc;
 use duckdb::{Connection, params};
@@ -52,6 +53,10 @@ struct Args {
     /// Optional, lock name (for hedge-rs)
     #[arg(long, long, default_value = "luna")]
     hedge_lockname: String,
+
+    /// Password, requires AUTH when set (other than "?")
+    #[arg(long, long, default_value = "?")]
+    passwd: String,
 
     /// Test anything, set to any value (other than "?") to enable
     #[arg(long, long, default_value = "?")]
@@ -113,7 +118,18 @@ fn main() -> Result<()> {
     let mut wp = WorkPool::new(rt.clone(), base_conn.try_clone()?, tx_work.clone(), rx_work.clone());
     wp.run()?;
 
-    TcpServer::new(rt.clone(), args.api_host_port.clone(), Arc::new(tx_work.clone())).run();
+    let mut pass_hash = String::new();
+    if args.passwd != "?" {
+        pass_hash = hash(args.passwd, 5)?;
+    }
+
+    TcpServer::new(
+        rt.clone(),
+        args.api_host_port.clone(),
+        Arc::new(tx_work.clone()),
+        Arc::new(pass_hash),
+    )
+    .run();
 
     rx_ctrlc.recv()?;
 

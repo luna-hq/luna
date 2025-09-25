@@ -17,6 +17,7 @@ arrow-array = "56.1.0"
 arrow-ipc = "56.1.0"
 arrow-schema = "56.1.0"
 async-channel = "=2.5.0"
+bcrypt = "0.17.1"
 clap = { version = "4.5.48", features = ["derive"] }
 ctrlc = "3.5.0"
 duckdb = { version = "1.4.0", features = ["bundled"] }

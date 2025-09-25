@@ -178,7 +178,7 @@ $ lunactl -p "SELECT CustomerId, Email FROM customers LIMIT 5;"
 $ lunactl -p "SELECT count(Index) FROM customers;" 
 ```
 
-## Runing on a GCP MIG
+## Running on a GCP MIG
 
 A sample cloud-init [startup script](./luna/scripts/startup-gcp-mig.sh) is provided for spinning up a [Managed Instance Group](https://cloud.google.com/compute/docs/instance-groups#managed_instance_groups) with Luna running as a systemd service.
 
@@ -204,7 +204,7 @@ $ brew install flowerinthenight/tap/g-ssh-cmd
 $ g-ssh-cmd mig luna-mig 'journalctl -f' --project {project}
 ```
 
-## Runing on an AWS ASG
+## Running on an AWS ASG
 
 A sample cloud-init [startup script](./luna/scripts/startup-aws-asg.sh) is provided for spinning up an [Auto Scaling Group](https://docs.aws.amazon.com/autoscaling/ec2/userguide/auto-scaling-groups.html) with Luna running as a systemd service.
 

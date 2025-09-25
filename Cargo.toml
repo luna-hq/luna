@@ -22,7 +22,7 @@ clap = { version = "4.5.48", features = ["derive"] }
 ctrlc = "3.5.0"
 duckdb = { version = "1.4.0", features = ["bundled"] }
 env_logger = "0.11.8"
-hedge_rs = "0.2.8"
+hedge_rs = "0.2.9"
 log = "0.4.28"
 memchr = "2.7"
 num_cpus = "1.17.0"

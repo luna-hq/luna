@@ -23,11 +23,11 @@ Requests are encoded as follows:
 $<length>\r\n<data>\r\n
 ```
 
-- The dollar sign ($) as the first byte.
+- The dollar sign (`$`) as the first byte.
 - One or more decimal digits (0..9) as the string's length, in bytes, as an unsigned, base-10 value.
-- The CRLF terminator.
+- The `CRLF` terminator.
 - The data.
-- A final CRLF.
+- A final `CRLF`.
 
 The `<data>` section is further broken down into the following:
 
@@ -140,11 +140,13 @@ Luna is designed to be accessed by trusted clients inside trusted environments. 
 
 #### [Authentication]
 
-Luna provides instance level authentication by setting the `--passwd` flag. When enabled, Luna will refuse any query by unauthenticated clients. A client can authenticate itself by sending the AUTH command followed by the password, then the CRLF terminator.
+Luna provides instance level authentication by setting the `--passwd` flag. When enabled, Luna will refuse any query by unauthenticated clients. A client can authenticate itself by sending the `AUTH` command followed by the password, then the CRLF terminator.
 
 ```
 AUTH <password>\r\n
 ```
+
+Luna's authentication is per connection. Once authenticated, a client can continue sending commands to Luna for the duration of the connection. An invalid authentication will cause the connection to close/drop.
 
 The AUTH command is sent unencrypted. It does not protect against an attacker who has enough access to the network to perform eavesdropping.
 

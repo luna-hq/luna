@@ -171,7 +171,7 @@ $ brew install flowerinthenight/tap/lunactl
 $ lunactl -x -p "CREATE TABLE customers AS FROM read_csv(
 '{luna-root}/luna/tests/customers-1000.csv', header = true);"
 
-# If password was enabled, add the --pass <password> flag.
+# If password was enabled, add the --pass <password> flag. For ex:
 # $ lunactl -p "DESCRIBE customers;" --pass K6K8bvyD2u
 
 # Describe our newly-created table.

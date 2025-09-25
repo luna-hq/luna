@@ -155,26 +155,32 @@ The `AUTH` command is sent unencrypted. It does not protect against an attacker 
 The following guide uses [`lunactl`](https://github.com/flowerinthenight/lunactl/), a test cmdline for Luna. A [sample CSV](./luna/tests/) (copied from [sample-csv-files](https://github.com/datablist/sample-csv-files)) is also included to test filesystem-based data imports.
 
 ```sh
-# Build binary:
+# Build binary.
 $ cargo build
 
-# Run on default port 7688:
+# Run on default port 7688.
 $ RUST_LOG=info ./target/debug/luna
 
-# Install lunactl for testing:
+# or if password is to be required.
+# $ RUST_LOG=info ./target/debug/luna --passwd K6K8bvyD2u
+
+# Install lunactl for testing.
 $ brew install flowerinthenight/tap/lunactl
 
-# Import local CSV to luna (newline is for readability only):
+# Import local CSV to luna (newline is for readability only).
 $ lunactl -x -p "CREATE TABLE customers AS FROM read_csv(
 '{luna-root}/luna/tests/customers-1000.csv', header = true);"
 
-# Describe our newly-created table:
+# If password was enabled, add the --pass <password> flag.
+# $ lunactl -p "DESCRIBE customers;" --pass K6K8bvyD2u
+
+# Describe our newly-created table.
 $ lunactl -p "DESCRIBE customers;"
 
-# Query some data (#1):
+# Query some data (#1).
 $ lunactl -p "SELECT CustomerId, Email FROM customers LIMIT 5;"
 
-# Query some data (#2):
+# Query some data (#2).
 $ lunactl -p "SELECT count(Index) FROM customers;" 
 ```
 

@@ -146,7 +146,7 @@ Luna provides instance level authentication by setting the `--passwd` flag. When
 AUTH <password>\r\n
 ```
 
-Luna's authentication is per connection. Once authenticated, a client can continue sending commands to Luna for the duration of the connection. An invalid authentication will cause the connection to close/drop.
+Luna's authentication is per connection. Once authenticated, a client can continue sending commands to Luna for the duration of the connection. An invalid authentication will terminate the connection.
 
 The `AUTH` command is sent unencrypted. It does not protect against an attacker who has enough access to the network to perform eavesdropping.
 

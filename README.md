@@ -138,6 +138,16 @@ record:
 
 Luna is designed to be accessed by trusted clients inside trusted environments. Exposing Luna directly to the internet or to an environment where untrusted clients can directly access Luna's TCP port is discouraged.
 
+#### [Authentication]
+
+Luna provides instance level authentication by setting the `--passwd` flag. When enabled, Luna will refuse any query by unauthenticated clients. A client can authenticate itself by sending the AUTH command followed by the password, then the CRLF terminator.
+
+```
+AUTH <password>\r\n
+```
+
+The AUTH command is sent unencrypted. It does not protect against an attacker who has enough access to the network to perform eavesdropping.
+
 ## Build and run (local)
 
 The following guide uses [`lunactl`](https://github.com/flowerinthenight/lunactl/), a test cmdline for Luna. A [sample CSV](./testdata/) (copied from [sample-csv-files](https://github.com/datablist/sample-csv-files)) is also included to test filesystem-based data imports.

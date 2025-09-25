@@ -165,7 +165,7 @@ $ RUST_LOG=info ./target/debug/luna
 $ brew install flowerinthenight/tap/lunactl
 
 # Import local CSV to luna (newline is for readability only):
-$ lunactl -type 'x:' -p "CREATE TABLE customers AS FROM read_csv(
+$ lunactl -x -p "CREATE TABLE customers AS FROM read_csv(
 '{luna-root}/luna/tests/customers-1000.csv', header = true);"
 
 # Describe our newly-created table:

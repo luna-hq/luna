@@ -67,7 +67,7 @@ async fn handle_stream(
 ) -> Result<()> {
     loop {
         let start = Instant::now();
-        defer!(info!("handle_tcp/iter took {:?}", start.elapsed()));
+        defer!(info!("handle_stream/iter took {:?}", start.elapsed()));
 
         let mut offset = 0;
         let mut len = 0;
@@ -121,7 +121,7 @@ async fn handle_stream(
             b'$' => match &accum[offset..(offset + 2)] {
                 b"x:" => {
                     tx_work
-                        .send(WorkCmd::ProtoDuckExec {
+                        .send(WorkCmd::ProtoDuckExecute {
                             write_half: write_half.clone(),
                             query: s_line.to_string(),
                             tx_wait,

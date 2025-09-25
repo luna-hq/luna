@@ -13,11 +13,7 @@ use std::{
     sync::{Arc, Mutex},
     thread::{self, JoinHandle},
 };
-use tokio::{
-    net::tcp::OwnedWriteHalf,
-    runtime::Runtime,
-    sync::mpsc::{self as tokio_mpsc},
-};
+use tokio::{net::tcp::OwnedWriteHalf, runtime::Runtime};
 
 #[derive(Debug)]
 pub enum WorkCmd {
@@ -28,7 +24,7 @@ pub enum WorkCmd {
         error: String,
         tx_wait: AsyncSender<usize>,
     },
-    ProtoDuckExec {
+    ProtoDuckExecute {
         write_half: Arc<Mutex<OwnedWriteHalf>>,
         query: String,
         tx_wait: AsyncSender<usize>,
@@ -100,12 +96,12 @@ impl WorkPool {
                         }
                     }
 
-                    let (tx_bridge, mut rx_bridge) = tokio_mpsc::unbounded_channel::<WorkCmd>();
+                    let (tx_bridge, rx_bridge) = async_channel::unbounded::<WorkCmd>();
                     rt_clone.block_on(async {
-                        tx_bridge.send(rx[0].recv().await.unwrap()).unwrap();
+                        tx_bridge.send(rx[0].recv().await.unwrap()).await.unwrap();
                     });
 
-                    match rx_bridge.blocking_recv().unwrap() {
+                    match rx_bridge.recv_blocking()? {
                         WorkCmd::Exit => return Ok(()),
                         WorkCmd::ProtoWriteError {
                             write_half,
@@ -116,7 +112,7 @@ impl WorkPool {
                             proto_write_error(rt_clone.clone(), write_half, input, error)?;
                             tx_wait.send_blocking(0)?;
                         }
-                        WorkCmd::ProtoDuckExec {
+                        WorkCmd::ProtoDuckExecute {
                             write_half,
                             query,
                             tx_wait,

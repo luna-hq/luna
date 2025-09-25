@@ -17,7 +17,7 @@ A Luna process maintains a single, in-memory database that can be configured thr
 
 #### [Request]
 
-Requests are encoded as follows (excluding `AUTH`, see [Authentication](#)):
+Requests are encoded as follows (excluding `AUTH`, see [Authentication](#authentication)):
 
 ```
 $<length>\r\n<data>\r\n

@@ -180,16 +180,12 @@ fn proto_write_error(
         ],
     )?;
 
-    let mut ipc_writer = IpcWriter {
+    let mut writer = IpcWriter {
         write_half: write_half,
         handle: rt.handle(),
     };
 
-    let mut sw = match StreamWriter::try_new(&mut ipc_writer, &err_schema) {
-        Err(e) => return Err(anyhow!("{e}")),
-        Ok(v) => v,
-    };
-
+    let mut sw = StreamWriter::try_new(&mut writer, &err_schema)?;
     let _ = sw.write(&err_rb);
     let _ = sw.finish();
     Ok(())
@@ -259,7 +255,7 @@ fn proto_duck_query(
         return Ok(0);
     }
 
-    let mut ipc_writer = IpcWriter {
+    let mut writer = IpcWriter {
         write_half: write_half,
         handle: rt.handle(),
     };
@@ -271,10 +267,7 @@ fn proto_duck_query(
         schema_t = mem::transmute(schema);
     }
 
-    let mut sw = match StreamWriter::try_new(&mut ipc_writer, &schema_t) {
-        Err(e) => return Err(anyhow!("{e}")),
-        Ok(v) => v,
-    };
+    let mut sw = StreamWriter::try_new(&mut writer, &schema_t)?;
 
     let n = rbs.len();
     for rb in rbs {

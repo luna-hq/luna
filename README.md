@@ -148,7 +148,7 @@ AUTH <password>\r\n
 
 Luna's authentication is per connection. Once authenticated, a client can continue sending commands to Luna for the duration of the connection. An invalid authentication will cause the connection to close/drop.
 
-The AUTH command is sent unencrypted. It does not protect against an attacker who has enough access to the network to perform eavesdropping.
+The `AUTH` command is sent unencrypted. It does not protect against an attacker who has enough access to the network to perform eavesdropping.
 
 ## Build and run (local)
 

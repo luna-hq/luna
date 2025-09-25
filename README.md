@@ -38,29 +38,29 @@ For example, to load CSV files from cloud storage, we will have the following re
 
 ```sql
 -- Setup credentials for GCS access:
-$79\n\nx:CREATE OR REPLACE SECRET (TYPE gcs, KEY_ID 'some-key', SECRET 'some-secret');\n\n
+$79\r\nx:CREATE OR REPLACE SECRET (TYPE gcs, KEY_ID 'some-key', SECRET 'some-secret');\r\n
 
 -- or S3 access:
-$116\n\nx:CREATE OR REPLACE SECRET (
-TYPE s3, PROVIDER config, KEY_ID 'some-key', SECRET 'some-secret', REGION 'us-east-1');\n\n
+$116\r\nx:CREATE OR REPLACE SECRET (
+TYPE s3, PROVIDER config, KEY_ID 'some-key', SECRET 'some-secret', REGION 'us-east-1');\r\n
 
 -- Then import some CSV files from GCS:
-$138\n\nx:CREATE TABLE tmpcur AS FROM read_csv('gs://bucket/987368816909_2025-08*.csv',
+$138\r\nx:CREATE TABLE tmpcur AS FROM read_csv('gs://bucket/987368816909_2025-08*.csv',
 header = true,
 union_by_name = true,
-files_to_sniff = -1);\n\n
+files_to_sniff = -1);\r\n
 
 -- or from S3:
-$138\n\nx:CREATE TABLE tmpcur AS FROM read_csv('s3://bucket/987368816909_2025-08*.csv',
+$138\r\nx:CREATE TABLE tmpcur AS FROM read_csv('s3://bucket/987368816909_2025-08*.csv',
 header = true,
 union_by_name = true,
-files_to_sniff = -1);\n\n
+files_to_sniff = -1);\r\n
 
 -- Describe the created table:
-$18\n\nq:DESCRIBE tmpcur;\n\n
+$18\r\nq:DESCRIBE tmpcur;\r\n
 
 -- Query data:
-$39\n\nq:SELECT uuid, date, payer FROM tmpcur;\n\n
+$39\r\nq:SELECT uuid, date, payer FROM tmpcur;\r\n
 ```
 
 #### [Response]

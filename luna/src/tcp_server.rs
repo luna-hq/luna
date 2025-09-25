@@ -197,7 +197,7 @@ async fn handle_stream(
 
         let line = &accum[(offset + 2)..(len + offset)];
         let s_line = String::from_utf8_lossy(line);
-        info!("payload: {:?}", s_line);
+        info!("payload={:?}", s_line);
 
         match &accum[0] {
             b'$' => match &accum[offset..(offset + 2)] {

@@ -120,7 +120,7 @@ fn main() -> Result<()> {
 
     let mut pass_hash = String::new();
     if args.passwd != "?" {
-        pass_hash = hash(args.passwd, 5)?;
+        pass_hash = hash(args.passwd, 4)?;
     }
 
     TcpServer::new(

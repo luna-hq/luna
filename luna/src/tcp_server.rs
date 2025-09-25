@@ -6,10 +6,7 @@ use log::*;
 use memchr::memmem;
 use std::{
     fmt::Write as _,
-    sync::{
-        Arc, Mutex,
-        atomic::{AtomicUsize, Ordering},
-    },
+    sync::{Arc, Mutex},
     thread,
     time::Instant,
 };
@@ -85,7 +82,7 @@ async fn handle_stream(
     s_addr: String,
     pass_hash: Arc<String>,
 ) -> Result<()> {
-    let pass_ok = Arc::new(AtomicUsize::new(0));
+    let mut pass_ok: usize = 0;
     loop {
         let start = Instant::now();
         defer!(info!("handle_stream/iter took {:?}", start.elapsed()));
@@ -134,15 +131,15 @@ async fn handle_stream(
         let (tx_wait, rx_wait) = async_channel::unbounded::<usize>();
 
         // "AUTH <password>\r\n"
-        if *pass_hash != "" && pass_ok.load(Ordering::Acquire) == 0 {
+        if *pass_hash != "" && pass_ok == 0 {
             info!("checking password...");
             let auth = &accum[0..(accum.len() - DELIM.len())];
             let s_auth = String::from_utf8_lossy(auth);
             let split = s_auth.split_ascii_whitespace().collect::<Vec<&str>>();
-            if split.len() > 1 {
+            if split.len() >= 2 {
                 let valid = verify(split[1], &pass_hash)?;
                 if split[0] == AUTH && valid {
-                    pass_ok.store(1, Ordering::Relaxed);
+                    pass_ok = 1;
                     tx_work
                         .send(WorkCmd::ProtoWriteError {
                             write_half: write_half.clone(),

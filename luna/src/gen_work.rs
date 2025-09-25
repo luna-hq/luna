@@ -3,7 +3,7 @@ use crate::tcp_server::{EMPTY, OK};
 use anyhow::{Result, anyhow};
 use arrow_array::{RecordBatch, StringArray};
 use arrow_ipc::writer::StreamWriter;
-use arrow_schema::{DataType, Field, Schema};
+use arrow_schema::{DataType, Field, Schema, SchemaRef};
 use async_channel::{Receiver as AsyncReceiver, Sender as AsyncSender};
 use duckdb::{Connection, arrow::record_batch::RecordBatch as DuckRecordBatch, params};
 use std::{
@@ -65,10 +65,10 @@ impl WorkPool {
         let max = num_cpus::get() * 2;
 
         for i in 0..max {
-            let rx_works_clone = rx_works.clone();
+            let rx_works = rx_works.clone();
 
             {
-                let mut mg = match rx_works_clone.lock() {
+                let mut mg = match rx_works.lock() {
                     Err(e) => return Err(anyhow!("{e}")),
                     Ok(v) => v,
                 };
@@ -260,10 +260,11 @@ fn proto_duck_query(
         handle: rt.handle(),
     };
 
-    // NOTE: There must be a better way than transmute.
     let (schema, _, _) = rbs[0].clone().into_parts();
-    let schema_t: Arc<Schema>;
+    let schema_t: SchemaRef;
     unsafe {
+        // Safety: duckdb's SchemaRef and arrow's SchemaRef
+        // are the same types (ensured by the same version).
         schema_t = mem::transmute(schema);
     }
 
@@ -273,6 +274,8 @@ fn proto_duck_query(
     for rb in rbs {
         let rb_t: RecordBatch;
         unsafe {
+            // Safety: duckdb's RecordBatch and arrow's RecordBatch
+            // are the same types (ensured by the same version).
             rb_t = mem::transmute(rb);
         }
 

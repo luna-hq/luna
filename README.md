@@ -170,6 +170,8 @@ $ brew install flowerinthenight/tap/lunactl
 # If password was enabled, add the --pass flag. For ex:
 # $ lunactl -p "DESCRIBE customers;" --pass K6K8bvyD2u
 
+# --- Sample for CSV ---
+
 # Import local CSV to luna (newline is for readability only).
 $ lunactl -x -p "CREATE TABLE customers AS FROM read_csv(
 '{luna-root}/luna/tests/customers-1000.csv', header = true);"
@@ -179,6 +181,8 @@ $ lunactl -p "DESCRIBE customers;"
 
 # Query some data.
 $ lunactl -p "SELECT CustomerId, Email FROM customers LIMIT 5;"
+
+# --- Sample for Parquet ---
 
 # Import local parquet to luna (newline is for readability only).
 $ lunactl -x -p "CREATE TABLE users AS FROM read_parquet(

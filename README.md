@@ -177,11 +177,18 @@ $ lunactl -x -p "CREATE TABLE customers AS FROM read_csv(
 # Describe our newly-created table.
 $ lunactl -p "DESCRIBE customers;"
 
-# Query some data (#1).
+# Query some data.
 $ lunactl -p "SELECT CustomerId, Email FROM customers LIMIT 5;"
 
-# Query some data (#2).
-$ lunactl -p "SELECT count(Index) FROM customers;" 
+# Import local parquet to luna (newline is for readability only).
+$ lunactl -x -p "CREATE TABLE users AS FROM read_parquet(
+'{luna-root}/luna/tests/users-1000.parquet');"
+
+# Describe the users table.
+$ lunactl -p "DESCRIBE users;"
+
+# Query some data.
+$ lunactl -p "SELECT id, email FROM users LIMIT 5;"
 ```
 
 ## Running on a GCP MIG

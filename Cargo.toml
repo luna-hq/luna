@@ -3,7 +3,7 @@ resolver = "3"
 members = ["luna"]
 
 [workspace.package]
-version = "0.4.2"
+version = "0.4.3"
 edition = "2024"
 authors = ["flowerinthenight <root@flowerinthenight.com>"]
 license = "Apache-2.0"
@@ -20,7 +20,7 @@ async-channel = "=2.5.0"
 bcrypt = "0.17.1"
 clap = { version = "4.5.48", features = ["derive"] }
 ctrlc = "3.5.0"
-duckdb = { version = "1.4.0", features = ["bundled"] }
+duckdb = { version = "1.4.1", features = ["bundled"] }
 env_logger = "0.11.8"
 hedge_rs = "0.2.9"
 log = "0.4.28"

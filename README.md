@@ -2,7 +2,7 @@
 > **Alpha-level software.** Development is actively ongoing. API will most likely change.
 
 > [!NOTE]
-> At the moment, the current focus is to develop the SQL driver for Go [here](https://github.com/flowerinthenight/luna-go/).
+> At the moment, the current focus is to develop the SQL driver for Go [here](https://github.com/luna-hq/luna-go/).
 
 [![main](https://github.com/flowerinthenight/luna/actions/workflows/main.yml/badge.svg)](https://github.com/flowerinthenight/luna/actions/workflows/main.yml)
 
@@ -155,7 +155,7 @@ The `AUTH` command is sent unencrypted. It does not protect against an attacker 
 
 ## Build and run (local)
 
-The following guide uses [`lunactl`](https://github.com/flowerinthenight/lunactl/), a test cmdline for Luna. A [sample CSV](./luna/tests/) (copied from [sample-csv-files](https://github.com/datablist/sample-csv-files)) is also included to test filesystem-based data imports.
+The following guide uses [`lunactl`](https://github.com/luna-hq/lunactl/), a test cmdline for Luna. A [sample CSV](./luna/tests/) (copied from [sample-csv-files](https://github.com/datablist/sample-csv-files)) is also included to test filesystem-based data imports.
 
 ```sh
 # Build binary.

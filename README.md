@@ -261,6 +261,40 @@ $ brew install flowerinthenight/tap/g-ssh-cmd
 $ g-ssh-cmd asg luna-asg 'journalctl -f' --key keyName.pem
 ```
 
+## Build and run with Docker
+
+You can build and run Luna using Docker and Docker Compose:
+
+### Build Docker image
+
+```sh
+# Build the Docker image
+$ docker build -t luna .
+```
+
+### Run with Docker Compose
+
+The provided `docker-compose.yml` sets up Luna with persistent data and test data mounted:
+
+```sh
+# Start Luna server using Docker Compose
+$ docker compose up -d
+
+# The server will be available on port 7688
+```
+
+You can customize environment variables and command options in `docker-compose.yml` as needed. For example, to set a password, uncomment and edit the `command` section:
+
+```yaml
+  # command: ["luna", "--api-host-port", "0.0.0.0:7688", "--passwd", "your-password"]
+```
+
+### Stopping the server
+
+```sh
+$ docker compose down
+```
+
 ## Todo
 
 - [ ] Client SDK (and samples) for mainstream programming languages

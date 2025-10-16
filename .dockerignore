@@ -1,0 +1,35 @@
+# Rust build artifacts
+target/
+**/target/
+
+# Cargo lock for workspace
+Cargo.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation
+README.md
+LICENSE
+
+# macOS
+.DS_Store
+
+# Build cache
+.cargo/
+
+# Bash files
+*.sh

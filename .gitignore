@@ -3,3 +3,6 @@ target
 **/*.rs.bk
 *.pdb
 **/mutants.out*/
+
+# Script files
+*.sh

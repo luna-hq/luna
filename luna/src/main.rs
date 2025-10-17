@@ -1,3 +1,4 @@
+mod args;
 mod gen_work;
 mod ipc_writer;
 mod op_handler;
@@ -5,6 +6,7 @@ mod tcp_server;
 mod utils;
 
 use anyhow::{Result, anyhow};
+use args::Args;
 use bcrypt::hash;
 use clap::Parser;
 use ctrlc;
@@ -25,43 +27,6 @@ use tokio::runtime::Builder;
 
 #[macro_use(defer)]
 extern crate scopeguard;
-
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
-struct Args {
-    /// API (TCP) host:port (format should be host:port)
-    #[arg(long, long, default_value = "0.0.0.0:7688")]
-    api_host_port: String,
-
-    /// DB home directory
-    #[arg(long, long, default_value = "/tmp")]
-    db_home_dir: String,
-
-    /// Node ID (format should be host:port)
-    #[arg(long, long, default_value = "0.0.0.0:8080")]
-    node_id: String,
-
-    /// Optional, Spanner database (for hedge-rs)
-    /// Format: "projects/{p}/instances/{i}/databases/{db}"
-    #[arg(long, long, default_value = "?", verbatim_doc_comment)]
-    hedge_db: String,
-
-    /// Optional, Spanner lock table (for hedge-rs)
-    #[arg(long, long, default_value = "luna")]
-    hedge_table: String,
-
-    /// Optional, lock name (for hedge-rs)
-    #[arg(long, long, default_value = "luna")]
-    hedge_lockname: String,
-
-    /// Password, requires AUTH when set (other than "?")
-    #[arg(long, long, default_value = "?")]
-    passwd: String,
-
-    /// Test anything, set to any value (other than "?") to enable
-    #[arg(long, long, default_value = "?")]
-    scratch: String,
-}
 
 fn main() -> Result<()> {
     env_logger::init();

@@ -4,7 +4,7 @@
 > [!NOTE]
 > At the moment, the current focus is to develop the SQL driver for Go [here](https://github.com/luna-hq/luna-go/).
 
-[![main](https://github.com/flowerinthenight/luna/actions/workflows/main.yml/badge.svg)](https://github.com/flowerinthenight/luna/actions/workflows/main.yml)
+[![main](https://github.com/luna-hq/luna/actions/workflows/main.yml/badge.svg)](https://github.com/luna-hq/luna/actions/workflows/main.yml)
 
 ## Overview
 

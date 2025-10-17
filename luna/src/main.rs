@@ -148,7 +148,7 @@ fn main() -> Result<()> {
 
 /// Anything goes here.
 fn scratch() -> Result<()> {
-    let s_line = String::from("one;two;three;four;five;six;seven;eight;nine;ten;");
+    let s_line = String::from("zero;one;two;three;four;five;six;seven;eight;nine;ten;");
     s_line.split(';').for_each(|s| info!("{}", s));
     Ok(())
 }

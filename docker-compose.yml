@@ -1,0 +1,22 @@
+services:
+  luna:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: luna-server
+    ports:
+      - "7688:7688"
+    volumes:
+      # Persist database data
+      - luna-data:/data
+      # Optional: mount test data
+      - ./luna/tests:/tests:ro
+    environment:
+      - RUST_LOG=info
+    restart: unless-stopped
+    # Optional: set password via environment
+    # command: ["luna", "--api-host-port", "0.0.0.0:7688", "--passwd", "your-password"]
+
+volumes:
+  luna-data:
+    driver: local

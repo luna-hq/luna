@@ -1,5 +1,7 @@
 # Multi-stage build for Luna SQL server
-FROM rustlang/rust:nightly-bookworm AS builder
+# --- Builder Stage ---
+# Use a specific stable version of Rust on Debian Bookworm
+FROM rust:1.90.0-bookworm AS builder
 
 # Install required dependencies
 RUN apt-get update && apt-get install -y \
@@ -22,7 +24,7 @@ COPY luna luna/
 # Build the application in release mode
 RUN cargo build --release
 
-# Runtime stage - smaller image
+# --- Runtime Stage ---
 FROM debian:bookworm-slim
 
 # Install runtime dependencies
@@ -51,3 +53,4 @@ EXPOSE 7688
 
 # Default command - can be overridden
 CMD ["luna", "--api-host-port", "0.0.0.0:7688"]
+# End of Dockerfile

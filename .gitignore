@@ -4,5 +4,7 @@ target
 *.pdb
 **/mutants.out*/
 
-# Script files
-*.sh
+# Dev Script files
+docker-dev.sh
+setup-dev.sh
+run-tests.sh

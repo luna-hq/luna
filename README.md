@@ -278,8 +278,6 @@ $ g-ssh-cmd asg luna-asg 'journalctl -f' --key keyName.pem
 ## Todo
 
 - [ ] Client SDK (and samples) for mainstream programming languages
-- [ ] A basic HTTP server for HTTP1.1-style requests
-- [ ] A basic gRPC server for streaming style requests
 - [ ] Authentication, users, and ACLs
   - [x] Simple, server-level password auth
 - [ ] Preload data import(s) on startup

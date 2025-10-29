@@ -202,7 +202,8 @@ You can build and run Luna using Docker and Docker Compose:
 # Build the Docker image
 $ docker build -t luna .
 
-# The provided `docker-compose.yml` sets up Luna with persistent data and test data mounted.
+# The provided `docker-compose.yml` sets up Luna
+# with persistent data and test data mounted.
 $ docker compose up -d
 
 # The server will be available on port 7688

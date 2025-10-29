@@ -3,3 +3,8 @@ target
 **/*.rs.bk
 *.pdb
 **/mutants.out*/
+
+# Dev Script files
+docker-dev.sh
+setup-dev.sh
+run-tests.sh

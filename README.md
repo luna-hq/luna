@@ -196,7 +196,7 @@ $ lunactl -p "DESCRIBE users;"
 $ lunactl -p "SELECT id, email FROM users LIMIT 5;"
 ```
 
-You can build and run Luna using Docker and Docker Compose:
+You can also build and run Luna using Docker and Docker Compose:
 
 ```sh
 # Build the Docker image

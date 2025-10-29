@@ -282,6 +282,7 @@ $ g-ssh-cmd asg luna-asg 'journalctl -f' --key keyName.pem
 ## Todo
 
 - [ ] Client SDK (and samples) for mainstream programming languages
+  - [x] SQL driver for Go  
 - [ ] Authentication, users, and ACLs
   - [x] Simple, server-level password auth
 - [ ] Preload data import(s) on startup

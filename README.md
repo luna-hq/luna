@@ -8,7 +8,6 @@
 **Luna** is an **in-memory**, columnar (OLAP) SQL server for object storage data. Built on [DuckDB](https://duckdb.org/) and [Apache Arrow](https://arrow.apache.org/), it supports  several data sources ([S3](https://aws.amazon.com/s3/), [GCS](https://cloud.google.com/storage?hl=en), [Azure Blob Storage](https://azure.microsoft.com/en-us/products/storage/blobs), local filesystem, etc.), and various data types (CSV, JSON, Parquet, Iceberg, Excel, etc.). It's in-memory by default but it supports spilling to disk for larger-than-memory workloads.
 
 > [!NOTE]
-> - At the moment, the current focus is to develop the SQL driver for Go [here](https://github.com/luna-hq/luna-go/).
 > - Luna's development is supported (and funded) by [Alphaus, Inc.](https://www.alphaus.cloud/en/) as it's also being used internally.
 > - Luna is tested (and expected) to run on a single machine, although support for distributed clusters is part of the goal in the (near) future.
 

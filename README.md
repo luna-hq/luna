@@ -196,6 +196,21 @@ $ lunactl -p "DESCRIBE users;"
 $ lunactl -p "SELECT id, email FROM users LIMIT 5;"
 ```
 
+You can build and run Luna using Docker and Docker Compose:
+
+```sh
+# Build the Docker image
+$ docker build -t luna .
+
+# The provided `docker-compose.yml` sets up Luna with persistent data and test data mounted.
+$ docker compose up -d
+
+# The server will be available on port 7688
+
+# To stop the server:
+$ docker compose down
+```
+
 ## Running on a GCP MIG
 
 A sample cloud-init [startup script](./luna/scripts/startup-gcp-mig.sh) is provided for spinning up a [Managed Instance Group](https://cloud.google.com/compute/docs/instance-groups#managed_instance_groups) with Luna running as a systemd service.
@@ -257,40 +272,6 @@ $ brew install flowerinthenight/tap/g-ssh-cmd
 
 # Assuming your 'aws' cmdline is configured properly.
 $ g-ssh-cmd asg luna-asg 'journalctl -f' --key keyName.pem
-```
-
-## Build and run with Docker
-
-You can build and run Luna using Docker and Docker Compose:
-
-### Build Docker image
-
-```sh
-# Build the Docker image
-$ docker build -t luna .
-```
-
-### Run with Docker Compose
-
-The provided `docker-compose.yml` sets up Luna with persistent data and test data mounted:
-
-```sh
-# Start Luna server using Docker Compose
-$ docker compose up -d
-
-# The server will be available on port 7688
-```
-
-You can customize environment variables and command options in `docker-compose.yml` as needed. For example, to set a password, uncomment and edit the `command` section:
-
-```yaml
-  # command: ["luna", "--api-host-port", "0.0.0.0:7688", "--passwd", "your-password"]
-```
-
-### Stopping the server
-
-```sh
-$ docker compose down
 ```
 
 ## Todo
